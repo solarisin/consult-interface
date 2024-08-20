@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "consult-interface"
+version = "0.1.0"
+description = ""
+authors = ["Rob L. <solarisin@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pyserial = "^3.5"
+timer = "^0.3.0"
+click = "^8.1.7"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.2"
+
+[tool.poetry.scripts]
+cli = 'consult_interface.cli.cli:cli'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

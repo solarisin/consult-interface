@@ -1,0 +1,12 @@
+Consult Bluetooth:
+https://minkara.carview.co.jp/userid/2228739/car/2451376/5317491/2/note.aspx#title
+https://www.martyncurrey.com/arduino-and-hc-06-zs-040/
+
+Consult arduino:
+https://minkara.carview.co.jp/userid/2228739/car/2451376/5201783/note.aspx
+
+Similar issues:
+https://minkara.carview.co.jp/userid/2228739/car/1730155/5621284/note.aspx
+
+This guy (Furinin? [ふーらぃにん]) has a lot of good info on 'hacking' nissan stuff in general:
+https://minkara.carview.co.jp/userid/2228739/blog/

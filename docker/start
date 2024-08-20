@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source "$SCRIPT_DIR"/.config
+    # -v "$HOME/.Xauthority:/root/.Xauthority:ro" \
+
+docker run \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -e "DISPLAY=$DISPLAY" \
+    --privileged \
+    --network host \
+    --rm \
+    --ipc host \
+    $DOCKER_IMAGE_NAME

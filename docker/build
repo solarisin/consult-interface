@@ -1,0 +1,14 @@
+#!/bin/bash
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source "$SCRIPT_DIR"/.config
+
+[ "$(id -u)" == 0 ] || UGIDS="--build-arg=userid=$(id -u) --build-arg=groupid=$(id -g)"
+docker build \
+    -t $DOCKER_IMAGE_NAME \
+    -f docker/Dockerfile \
+    --rm \
+    $UGIDS \
+    $* \
+    .

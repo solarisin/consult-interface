@@ -1,0 +1,62 @@
+cas_pos_msb,0x00,CAS Position (RPM),MSB,See LSB
+cas_pos_lsb,0x01,CAS Position (RPM),LSB,Value * 12.5 (RPM)
+cas_ref_msb,0x02,CAS Reference (RPM),MSB,See LSB
+cas_ref_lsb,0x03,CAS Reference (RPM),LSB,Value * 8 (RPM) ??
+maf_volts_msb,0x04,MAF voltage,MSB,See LSB
+maf_volts_lsb,0x05,MAF voltage,LSB,Value * 5 (mV)
+maf_volts_rh_msb,0x06,RH MAF voltage,MSB,See LSB
+maf_volts_rh_msb,0x07,RH MAF voltage,LSB,Value * 5 (mV)
+coolant_temp,0x08,Coolant temp,Single byte,Value-50 (deg C)
+o2_volts_lh,0x09,LH O2 Sensor Voltage,Single byte,Value * 10 (mV)
+o2_volts_rh,0x0a,RH O2 Sensor Voltage,Single byte,Value * 10 (mV)
+speed,0x0b,Vehicle speed,Single byte,Value * 2 (kph)
+bat_volts,0x0c,Battery Voltage,Single Byte,Value * 80 (mV)
+tps,0x0d,Throttle Position Sensor,Single Byte,Value * 20 (mV)
+,0x0e,Unknown,Unknown,Not documented
+fuel_temp,0x0f,FUEL TEMP SEN,Single byte,Value-50 (deg C)
+,0x10,Unknown,Unknown,Not documented
+iat,0x11,Intake Air Temp,Single Byte,Value -50 (deg C)
+egt,0x12,Exhaust Gas Temp,Single Byte,Value * 20 (mV)
+bits_1,0x13,Digital Bit Register,Single byte,Bit Values: 4-A/C On 3-PowerSteering 2-Park/Neutral 1-Cranking 0-CLSD/THL POS
+inj_time_lh_msb,0x14,Injection Time (LH),MSB,See LSB
+inj_time_lh_lsb,0x15,Injection Time (LH),LSB,Value / 100 (mS)
+ign_timing,0x16,Ignition Timing,Single Byte,110 – Value (Deg BTDC)
+aac_valve,0x17,AAC Valve (Idle Air Valve %),Single Byte,Value / 2 (%)
+,0x18,Unknown,Unknown,Not documented
+,0x19,Unknown,Unknown,Not documented
+af_alpha_lh,0x1a,A/F ALPHA-LH,Single byte,Value (%)
+af_alpha_rh,0x1b,A/F ALPHA-RH,Single byte,Value (%)
+af_alpha_selflearn_lh,0x1c,A/F ALPHA-LH (SELFLEARN),Single byte,Value (%)
+af_alpha_selflearn_rh,0x1d,A/F ALPHA-RH (SELFLEARN),Single byte,Value (%)
+bits_2,0x1e,Digital Control Register,Single byte,Bit Values: 7-A/C Relay 6-Fuel Pump Relay 5-VTC Solenoid 4-Unk 3-Unk 2-Unk 1-Coolant Fan Hi 0-Coolant Fan Lo
+bits_3,0x1f,Digital Control Register,Single byte,See digital register table
+,0x20,Unknown,Unknown,Not documented
+bits_4,0x21,M/R F/C MNT,Single byte,Bit Values: 7-LH Bank Lean 6-RH Bank Lean
+inj_time_rh_msb,0x22,Injector time (RH),MSB,See LSB
+inj_time_rh_lsb,0x23,Injector time (RH),LSB,Value / 100 (mS)
+,0x24,Unknown,Unknown,Not documented
+purge_valve_step,0x25,Purg. Vol. Control Valve Step,Single byte,NULL
+tank_fuel_temp,0x26,Tank Fuel Temperature C,Single byte,NULL
+fpcm_volts,0x27,FPCM DR Voltage,Single byte,NULL
+wg_sol,0x28,Waste Gate Solenoid %,Single byte,NULL
+boost_volts,0x29,Turbo Boost Sensor Voltage,Single byte,NULL
+engine_mount,0x2a,Engine Mount On/Off,Single byte,NULL
+,0x2b,Unknown,Unknown,Not documented
+,0x2c,Unknown,Unknown,Not documented
+,0x2d,Unknown,Unknown,Not documented
+pos_ctr,0x2e,Position Counter,Single byte,NULL
+fuel_gauge_volts,0x2f,Fuel Gauge Voltage,Single byte,NULL
+o2_fr_b1_volts,0x30,FR O2 Heater-B1,Single byte,Bank 1?
+o2_fr_b2_volts,0x31,FR O2 Heater-B2,Single byte,Bank 2?
+ign_switch,0x32,Ignition Switch,Single byte,NULL
+cal_ld_value,0x33,CAL/LD Value %,Single byte,NULL
+fuel_sched,0x34,B/Fuel Schedule m S,Single byte,NULL
+o2_rr_b1_volts,0x35,RR O2 Sensor Voltage,Single byte,NULL
+o2_rr_b2_volts,0x36,RR O2 Sensor-B2 Voltage, Single byte,NULL
+throttle_pos_abs,0x37,Absolute Throttle Position,Single byte,NULL
+maf_scaled,0x38,MAF gm/S,Single byte,NULL
+evap_press_volts,0x39,Evap System Pressure Voltage,Single byte,NULL
+abs_press_volts_a,0x3a,Absolute Pressure Sensor Voltage,Dual,A
+abs_press_volts_b,0x4a,Absolute Pressure Sensor Voltage,Dual,B
+fpcm_press_volts_a,0x52,FPCM F/P Voltage,Dual,A
+fpcm_press_volts_b,0x53,FPCM F/P Voltage,Dual,B
