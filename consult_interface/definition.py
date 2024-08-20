@@ -64,10 +64,11 @@ class ParamID(IntEnum):
     RH_BANK_LEAN = 58
 
 
+
+
 class ConsultDefinition:
     def __init__(self):
         self.init = b'\xFF\xFF\xEF'
-        self.init_response = 0x10
         # flag to be prefixed before any register value
         self.msg_register_param = 0x5A
         # terminates registration of values, and also signals the ecu our message is complete, and to start processing

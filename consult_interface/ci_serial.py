@@ -4,14 +4,19 @@ from typing import Callable
 import serial
 import threading
 
-from .utils import Definition
+from .import utils as utils
+from .utils import Definition as Definition
 
+
+class InitializeFailedError(ValueError):
+    pass
 
 # base class for communication to the nissan consult UART interface over a usb serial connection
 class ConsultSerial(ABC):
     def __init__(self, port: str):
         self._port = port
         self._baud = 9600
+        self._initialized = False
 
     @abstractmethod
     def _open(self):
@@ -29,10 +34,49 @@ class ConsultSerial(ABC):
     def _read(self, size: int):
         pass
 
+    # 'public' methods
+
+    @abstractmethod
+    def is_connected(self):
+        pass
+
     def initialize_ecu(self):
-        self._open()
+        if not self.is_connected():
+            self._open()
+
+        # Write the init command bytes to the serial port and wait for the inverse response
         self._write(Definition.init)
-        self._read(1)
+        init_response = utils.invert_bytes(Definition.init)
+        response = self._read(len(init_response))
+        if not response == init_response:
+            raise InitializeFailedError(f"Unexpected init response: {response.hex()}")
+        self._initialized = True
+        return True
+
+    def read_ecu_part_number(port: serial.Serial):
+        ecu_part_number_cmd = b'\xD0'
+        ecu_part_number_ack = invert_bytes(ecu_part_number_cmd)
+        cmd_delimiter = b'\xF0'
+        cmd_stop = b'\x30'
+        cmd_stop_ack = invert_bytes(cmd_stop)
+        port.write(ecu_part_number_cmd + cmd_delimiter)
+
+        ack = port.read(1)
+        if not ack == ecu_part_number_ack:
+            raise InvalidAckError(
+                f"Received unexpected acknowledge byte '{ack.hex(' ')}', expected '{ecu_part_number_ack.hex(' ')}'")
+        port.write(cmd_stop)
+        data = port.read(24)
+        process_frame(ecu_part_number_cmd, data)
+        stop_ack = port.read(1)
+        if stop_ack != cmd_stop_ack:
+            raise InvalidAckError(f"Unexpected stop ack received: {stop_ack.hex(' ')}")
+
+    def stop_stream(self):
+        """
+        Send the ECU a command to stop streaming data
+        """
+        self._write(Definition.stop_stream)
 
 
 # Thread class for reading ECU parameter frames from the serial port
@@ -83,6 +127,11 @@ class ConsultSerialImpl(ConsultSerial):
             self._serial.open()
 
     def _close(self):
+        # noinspection PyBroadException
+        try:
+            self.stop_stream()
+        except:
+            pass # We are shutting down, so we don't care if this fails
         self._serial.close()
 
     def _write(self, data) -> int | None:
@@ -90,6 +139,10 @@ class ConsultSerialImpl(ConsultSerial):
 
     def _read(self, size: int) -> bytes:
         return self._serial.read(size)
+
+    def is_connected(self):
+        return self._serial.is_open
+
 
 def create(port: str, mock=False) -> ConsultSerial:
     if mock:
