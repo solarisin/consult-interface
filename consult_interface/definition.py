@@ -68,16 +68,18 @@ class ParamID(IntEnum):
 
 class ConsultDefinition:
     def __init__(self):
-        self.init = b'\xFF\xFF\xEF'
-        # flag to be prefixed before any register value
-        self.msg_register_param = 0x5A
-        # terminates registration of values, and also signals the ecu our message is complete, and to start processing
-        self.terminate_msg = 0xF0
+        self.init = [0xFF, 0xFF, 0xEF]
+        # cmd flag to read the ecu part number
+        self.cmd_ecu_part_number = 0xD0
+        # cmd flag to request an ecu register to read (can request multiple registers at once)
+        self.cmd_register_param = 0x5A
+        # terminates registration of values, and also signals the ecu our message is complete, and to start streaming
+        self.start_stream = 0xF0
         # ex: \x5A\x0B\x5A\x01 -> sets requested registers to b'0x0B' and b'0x01' (vehicle speed and engine speed),
         # then instructs the ECU to start streaming data
         self.stop_stream = 0x30
-        self.stop_ack = 0xCF
 
+        # ECU parameters
         self._parameters = dict()
         self._parameters[ParamID.ENGINE_SPEED_HR] = EcuParamDual("Engine Speed HR", 0x00, 0x01, "RPM", 12.5)
         self._parameters[ParamID.ENGINE_SPEED_LR] = EcuParamDual("Engine Speed LR", 0x02, 0x03, "RPM", 8)

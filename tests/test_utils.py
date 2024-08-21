@@ -2,16 +2,16 @@ import consult_interface as ci
 
 
 def test_scan_match():
-    register_byte = b'\x5A'
-    register_byte2 = ci.Definition.msg_register_param.to_bytes(1, 'big')
+    register_byte = bytes([ci.Definition.cmd_register_param])
+    register_byte2 = ci.Definition.cmd_register_param.to_bytes(1, 'big')
     assert register_byte == register_byte2
 
     inputs = [
-        (b'\xFF\xFF\xFF\xEF\x5A', ci.Definition.init),
-        (b'\xFF\xFF\xFF\xEF', ci.Definition.init),
-        (b'\xFF\xFF\xEF', ci.Definition.init),
-        (b'\xFF\xEF', ci.Definition.init),
-        (b'\xFF\x5A\x03\x5A', ci.Definition.msg_register_param.to_bytes(1, 'little'))
+        (b'\xFF\xFF\xFF\xEF\x5A', bytes(ci.Definition.init)),
+        (b'\xFF\xFF\xFF\xEF', bytes(ci.Definition.init)),
+        (b'\xFF\xFF\xEF', bytes(ci.Definition.init)),
+        (b'\xFF\xEF', bytes(ci.Definition.init)),
+        (b'\xFF\x5A\x03\x5A', bytes([ci.Definition.cmd_register_param]))
     ]
     # ([found], [remaining bytes])
     results = [
