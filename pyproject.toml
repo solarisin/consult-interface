@@ -13,9 +13,20 @@ click = "^8.1.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.2"
+pytest-html = "^4.1.1"
 
 [tool.poetry.scripts]
 cli = 'consult_interface.cli.cli:cli'
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+log_cli = true
+log_cli_level = "DEBUG"
+log_cli_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S.%f"
+log_level = "DEBUG"
+log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S.%f"
 
 [build-system]
 requires = ["poetry-core"]
