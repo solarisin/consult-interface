@@ -29,33 +29,15 @@ class MockConsultSerial(ConsultSerial):
     def is_connected(self):
         return True
 
-def decode():
-    log.debug("decode wtf d")
-    log.warning("decode wtf w")
-    log.error("decode wtf e")
-    log.critical("decode wtf c")
-
 def test_decode_response(caplog):
-    # frame_log = logging.getLogger("frames")
-    # caplog.set_level(logging.DEBUG, "frames")
     caplog.set_level(logging.DEBUG)
-    log.critical("wtf crit")
     port = '/dev/ttyUSB0'
     # sent_command =
-    response_playback_file = path('../docs/test_data_1.hex')
+    response_playback_file = path('../docs/test_data.hex')
     with open(response_playback_file, 'rb') as file:
         data = file.read(28)
-        # frame_log.debug(data.hex(' ').upper())
-        frame_log.info(data.hex(' ').upper())
+        frame_log.debug(data.hex(' ').upper())
 
-    log.debug("wtf d")
-    log.warning("wtf w")
-    log.error("wtf e")
-    log.critical("wtf c")
-
-    decode()
-
-    assert False
     # consult = MockConsultSerial(port, response_playback_file)
     # consult.initialize_ecu()
     # consult.read_ecu_part_number()
