@@ -29,12 +29,20 @@ class MockConsultSerial(ConsultSerial):
     def is_connected(self):
         return True
 
-def test_decode_response(caplog):
+def test_decode_response(caplog, data_registry):
     caplog.set_level(logging.DEBUG)
-    port = '/dev/ttyUSB0'
-    # sent_command =
-    response_playback_file = path('../docs/test_data.hex')
-    with open(response_playback_file, 'rb') as file:
+    log.debug("Test decoding of response frame")
+    data_entry_id = "test_1"
+
+    test_data = data_registry.get(data_entry_id)
+    if test_data is None:
+        log.error(f"Data entry '{data_entry_id}' not found")
+        assert False
+
+    log.debug(f"  Sent Command: {test_data.command.hex(' ').upper()}")
+    log.debug(f"  Capture File: {test_data.capture_file}")
+
+    with open(test_data.capture_file, 'rb') as file:
         data = file.read(28)
         frame_log.debug(data.hex(' ').upper())
 
