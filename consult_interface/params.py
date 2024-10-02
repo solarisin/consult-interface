@@ -1,6 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
 
+class RegisterNotInHeaderError(ValueError):
+    pass
+
 class EcuParam(ABC):
     def __init__(self, name, unit_label="", scale=1.0, offset=0.0):
         self.name = name
@@ -33,6 +36,7 @@ class EcuParam(ABC):
         :param header: the header of the frame
         :param frame: the frame data
         """
+        raise NotImplementedError("update_value is pure virtual")
         pass
 
     @abstractmethod
@@ -65,12 +69,18 @@ class EcuParam(ABC):
     def extract_value(header: bytes, frame: bytes, register: int):
         # bytes 1 and 2 are 0xFF and the frame length, respectively
         frame_data = frame[2:]
+        header_data = header[1::2]
         # header is in the form b'\xA5\x[register_1]\xA5\x[register_2]...' which corresponds to the order of
         # the bytes in the frame.
         # find the position of this parameter in the frame from the header
-        param_index = header.index(bytes([register]))
+        try:
+            param_index = header_data.index(bytes([register]))
+        except ValueError:
+            raise RegisterNotInHeaderError(f"Register {register} not found in header data: {header_data.hex(' ')}")
         # get the unscaled value from the frame data
-        return frame_data[param_index]
+        value = header_data[param_index]
+
+        return value
 
 
 class EcuParamSingle(EcuParam):
@@ -80,7 +90,7 @@ class EcuParamSingle(EcuParam):
         self._unscaled_value = None
 
     def get_registers(self) -> bytes:
-        return bytes(self.get_register())
+        return bytes([self.get_register()])
 
     def get_register(self) -> int:
         return self.register
@@ -119,8 +129,20 @@ class EcuParamDual(EcuParam):
 
     def update_value(self, header: bytes, frame: bytes):
         EcuParam.sanity_check(header, frame)
-        self._unscaled_value_msb = EcuParam.extract_value(header, frame, self.register_msb)
-        self._unscaled_value_lsb = EcuParam.extract_value(header, frame, self.register_lsb)
+        msb_found = False
+        lsb_found = False
+        try:
+            self._unscaled_value_msb = EcuParam.extract_value(header, frame, self.register_msb)
+            msb_found = True
+        except RegisterNotInHeaderError:
+            self._unscaled_value_msb = 0
+        try:
+            self._unscaled_value_lsb = EcuParam.extract_value(header, frame, self.register_lsb)
+            lsb_found = True
+        except RegisterNotInHeaderError:
+            self._unscaled_value_lsb = 0
+        if not msb_found and not lsb_found:
+            raise RegisterNotInHeaderError(f"Neither register {self.register_msb} nor {self.register_lsb} found in header: {header.hex(' ')}")
 
 
 class EcuParamBit(EcuParam):
@@ -131,7 +153,7 @@ class EcuParamBit(EcuParam):
         self.bit_value = None
 
     def get_registers(self) -> bytes:
-        return bytes(self.get_register())
+        return bytes([self.get_register()])
 
     def get_register(self) -> int:
         return self.register

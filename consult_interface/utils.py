@@ -1,5 +1,5 @@
 from .definition import ConsultDefinition, ParamID
-from .params import EcuParam
+from .params import EcuParam, EcuParamSingle
 
 Definition = ConsultDefinition()
 
@@ -16,11 +16,15 @@ def param_ids_to_param(param_ids: iter(ParamID)) -> list[EcuParam]:
     return params
 
 
+def param_id_of_single_param(param: EcuParamSingle) -> ParamID:
+    return Definition.get_param_id_from_register(param.get_register())
+
+
 def params_to_command(param_ids) -> bytes:
     cmd_bytes = bytearray()
     for param in param_ids_to_param(param_ids):
         try:
-            cmd_bytes.append(Definition.register_param)
+            cmd_bytes.append(Definition.cmd_register_param)
             cmd_bytes.append(param.get_register())
         except Exception as e:
             print(f'Exception converting parameter {param.name} to command: {e}')
@@ -32,7 +36,7 @@ def params_to_command(param_ids) -> bytes:
 def command_to_params(command: bytes) -> list[EcuParam]:
     params = []
     for i in range(0, len(command)):
-        if command[i] == Definition.register_param:
+        if command[i] == Definition.cmd_register_param:
             continue
         if command[i] == Definition.start_stream:
             break

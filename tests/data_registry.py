@@ -37,7 +37,13 @@ class DataRegistry:
     @staticmethod
     def generate_registry(project_root_path):
         DataRegistry.Registry = DataRegistry()
-        DataRegistry.Registry.add("test_1", b'\xD0', Path(project_root_path, 'docs', 'test_data.hex'))
+
+        # Stream of data values - capture file starts after command sent, no init
+        DataRegistry.Registry.add(
+            "test_1",
+            b'\x5A\x0B\x5A\x01\x5A\x08\x5A\x0C\x5A\x0D\x5A\x03\x5A\x05\x5A\x09\x5A\x13\x5A\x16\x5A\x17\x5A\x1A\x5A\x1C\x5A\x21\xF0',
+            Path(project_root_path, 'docs', 'test_data.hex')
+        )
 
     @staticmethod
     def get_registry(project_root_path = None) -> 'DataRegistry':

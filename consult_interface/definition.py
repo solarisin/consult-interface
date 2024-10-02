@@ -177,8 +177,11 @@ class ConsultDefinition:
             return self.get_parameter_from_param_id(pid)
         raise TypeError(f"Expected ParamID, got {type(pid)}")
 
-    def get_parameters(self) -> list[EcuParam]:
-        return self._parameters.values()
+    def get_parameter_list(self) -> list[EcuParam]:
+        return list(self._parameters.values())
+
+    def get_parameter_dict(self) -> dict[ParamID, EcuParam]:
+        return self._parameters
 
     def get_enabled_parameters(self) -> list[EcuParam]:
         return [p for pid, p in self._parameters.items() if p.enabled]
