@@ -5,10 +5,20 @@ from abc import ABC
 from consult_interface.ci_serial import ConsultSerial
 import consult_interface.utils as ci_utils
 from consult_interface import Definition as ci_def
+import json
+
+import matplotlib.pyplot as plt
 
 logging.getLogger().propagate = True
 log = logging.getLogger(__name__)
 frame_log = logging.getLogger("frame_log")
+
+def show_plot(array, title):
+    import matplotlib.pyplot as plt
+    plt.plot(array)
+    plt.title(title)
+    plt.show()
+
 
 class MockConsultSerial(ConsultSerial):
     def __init__(self, port: str, file: path):
@@ -106,12 +116,28 @@ def test_decode_response(caplog, data_registry):
         frame_log.debug(f" 1: {first_frame.hex(' ').upper()}")
 
         # TODO - values are incorrect
+        j_dict = {
+            "header": header.hex(' ').upper(),
+            "frame": first_frame.hex(' ').upper(),
+            "frame_index": 1,
+            "parameters": []
+        }
         for p in ci_def.get_enabled_parameters():
             p.update_value(header, first_frame)
-            log.info(f"{p.name} value: {p.get_value()} {p.unit_label}")
+            j_dict["parameters"].append(p.to_dict())
+
+        out_file_path = path("output/first_frame.json").absolute()
+        out_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_file_path, 'w') as f_out:
+            f_out.write(json.dumps(j_dict, indent=2))
 
         # read the rest of the frames in the file
         n = 1
+        plot_dict = {}
+        for p in ci_def.get_enabled_parameters():
+            plot_dict[p.name] = []
+        plot_dict["RPM Sum"] = []
+
         while frame := file.read(frame_size):
             n+=1
             if len(frame) != frame_size:
@@ -119,7 +145,20 @@ def test_decode_response(caplog, data_registry):
                 break
             if n < 100:
                 frame_log.debug(f"{n:2}: {frame.hex(' ').upper()}")
-
+            if 12500 < n < 17500:
+                rpm_value = 0
+                rpm_ref_value = 0
+                for p in ci_def.get_enabled_parameters():
+                    p.update_value(header, frame)
+                    plot_dict[p.name].append(p.get_value())
+                    if p.param_id == ci_utils.ParamID.ENGINE_SPEED_HR:
+                        rpm_value = p.get_value()
+                    if p.param_id == ci_utils.ParamID.ENGINE_SPEED_LR:
+                        rpm_ref_value = p.get_value()
+                plot_dict["RPM Sum"].append(rpm_value + rpm_ref_value)
+                
+        for name, values in plot_dict.items():
+            show_plot(values, name)
     # consult = MockConsultSerial(port, response_playback_file)
     # consult.initialize_ecu()
     # consult.read_ecu_part_number()

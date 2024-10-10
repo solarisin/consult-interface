@@ -1,0 +1,161 @@
+{
+  "header": "A5 0B A5 01 A5 08 A5 0C A5 0D A5 03 A5 05 A5 09 A5 13 A5 16 A5 17 A5 1A A5 1C A5 21",
+  "frame": "FF 0E 00 38 7F B2 17 6B D0 1C 01 68 4C 64 76 00",
+  "frame_index": 1,
+  "parameters": [
+    {
+      "name": "Engine Speed HR",
+      "unit_label": "RPM",
+      "scale": 12.5,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X1",
+      "registers": "00 01",
+      "unscaled_value": 56,
+      "value": 700.0
+    },
+    {
+      "name": "Engine Speed LR",
+      "unit_label": "RPM",
+      "scale": 8,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X3",
+      "registers": "02 03",
+      "unscaled_value": 107,
+      "value": 856
+    },
+    {
+      "name": "MAF Voltage",
+      "unit_label": "mV",
+      "scale": 5,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X5",
+      "registers": "04 05",
+      "unscaled_value": 208,
+      "value": 1040
+    },
+    {
+      "name": "Coolant Temp",
+      "unit_label": "C",
+      "scale": 1,
+      "offset": -50,
+      "enabled": true,
+      "register": "0X8",
+      "registers": "08",
+      "unscaled_value": 127,
+      "value": 77
+    },
+    {
+      "name": "O2 Voltage LH",
+      "unit_label": "mV",
+      "scale": 10,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X9",
+      "registers": "09",
+      "unscaled_value": 28,
+      "value": 280
+    },
+    {
+      "name": "Vehicle Speed",
+      "unit_label": "km/h",
+      "scale": 2,
+      "offset": 0,
+      "enabled": true,
+      "register": "0XB",
+      "registers": "0B",
+      "unscaled_value": 0,
+      "value": 0
+    },
+    {
+      "name": "Battery Voltage",
+      "unit_label": "V",
+      "scale": 80,
+      "offset": 0,
+      "enabled": true,
+      "register": "0XC",
+      "registers": "0C",
+      "unscaled_value": 178,
+      "value": 14240
+    },
+    {
+      "name": "TPS",
+      "unit_label": "%",
+      "scale": 20,
+      "offset": 0,
+      "enabled": true,
+      "register": "0XD",
+      "registers": "0D",
+      "unscaled_value": 23,
+      "value": 460
+    },
+    {
+      "name": "Ignition Timing",
+      "unit_label": "deg BTDC",
+      "scale": -1,
+      "offset": 110,
+      "enabled": true,
+      "register": "0X16",
+      "registers": "16",
+      "unscaled_value": 104,
+      "value": 6
+    },
+    {
+      "name": "AAC Valve",
+      "unit_label": "%",
+      "scale": 0.5,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X17",
+      "registers": "17",
+      "unscaled_value": 76,
+      "value": 38.0
+    },
+    {
+      "name": "AF Alpha LH",
+      "unit_label": "%",
+      "scale": 1,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X1A",
+      "registers": "1A",
+      "unscaled_value": 100,
+      "value": 100
+    },
+    {
+      "name": "AF Alpha Selflearn LH",
+      "unit_label": "%",
+      "scale": 1,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X1C",
+      "registers": "1C",
+      "unscaled_value": 118,
+      "value": 118
+    },
+    {
+      "name": "CLSD/THL POS",
+      "unit_label": "",
+      "scale": 1,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X13",
+      "registers": "13",
+      "unscaled_value": 1,
+      "value": 1
+    },
+    {
+      "name": "RH Bank Lean",
+      "unit_label": "",
+      "scale": 1,
+      "offset": 0,
+      "enabled": true,
+      "register": "0X21",
+      "registers": "21",
+      "unscaled_value": 0,
+      "value": 0
+    }
+  ]
+}

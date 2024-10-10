@@ -1,11 +1,14 @@
 import logging
 from abc import ABC, abstractmethod
+from string import hexdigits
+
 
 class RegisterNotInHeaderError(ValueError):
     pass
 
 class EcuParam(ABC):
-    def __init__(self, name, unit_label="", scale=1.0, offset=0.0):
+    def __init__(self, param_id, name, unit_label="", scale=1.0, offset=0.0):
+        self.param_id = param_id
         self.name = name
         self.unit_label = unit_label
         self.scale = scale
@@ -43,6 +46,19 @@ class EcuParam(ABC):
     def get_unscaled_value(self):
         pass
 
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "unit_label": self.unit_label,
+            "scale": self.scale,
+            "offset": self.offset,
+            "enabled": self.enabled,
+            "register": hex(self.get_register()).upper(),
+            "registers": self.get_registers().hex(' ').upper(),
+            "unscaled_value": self.get_unscaled_value(),
+            "value": self.get_value()
+        }
+
     def get_value(self):
         unscaled = self.get_unscaled_value()
         if unscaled is None:
@@ -78,14 +94,14 @@ class EcuParam(ABC):
         except ValueError:
             raise RegisterNotInHeaderError(f"Register {register} not found in header data: {header_data.hex(' ')}")
         # get the unscaled value from the frame data
-        value = header_data[param_index]
+        value = frame_data[param_index]
 
         return value
 
 
 class EcuParamSingle(EcuParam):
-    def __init__(self, name, register: int, unit_label="", scale=1, offset=0):
-        super().__init__(name, unit_label, scale, offset)
+    def __init__(self, param_id, name, register: int, unit_label="", scale=1, offset=0):
+        super().__init__(param_id, name, unit_label, scale, offset)
         self.register = register
         self._unscaled_value = None
 
@@ -104,8 +120,8 @@ class EcuParamSingle(EcuParam):
 
 
 class EcuParamDual(EcuParam):
-    def __init__(self, name, register_msb: int, register_lsb: int, unit_label="", scale=1, offset=0):
-        super().__init__(name, unit_label, scale, offset)
+    def __init__(self, param_id, name, register_msb: int, register_lsb: int, unit_label="", scale=1, offset=0):
+        super().__init__(param_id, name, unit_label, scale, offset)
         self.register_msb = int(register_msb)
         self.register_lsb = int(register_lsb)
         self._unscaled_value_msb = None
@@ -146,8 +162,8 @@ class EcuParamDual(EcuParam):
 
 
 class EcuParamBit(EcuParam):
-    def __init__(self, name, register: int, bit, unit_label="", scale=1, offset=0):
-        super().__init__(name, unit_label, scale, offset)
+    def __init__(self, param_id, name, register: int, bit, unit_label="", scale=1, offset=0):
+        super().__init__(param_id, name, unit_label, scale, offset)
         self.register = register
         self.bit = bit
         self.bit_value = None

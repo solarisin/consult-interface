@@ -1,0 +1,47 @@
+{
+  "serial_config": {
+    "baudrate": 115200,
+    "bytesize": 8,
+    "parity": "N",
+    "stopbits": 1,
+    "timeout": 0.1
+  },
+  "behaviors" : [
+    {
+      "type": "command",
+      "name": "init",
+      "match": {
+        "type": "hex",
+        "value": ["FF", "FF", "EF"]
+      },
+      "response": {
+        "type": "hex",
+        "value": ["00", "00", "10"]
+      }
+    },
+    {
+      "type": "command",
+      "name": "register parameters",
+      "match": {
+        "type": "hex",
+        "value": ["5A", "0B", "5A", "01", "5A", "08", "5A", "0C", "5A", "0D", "5A", "03", "5A", "05", "5A", "09", "5A", "13", "5A", "16", "5A", "17", "5A", "1A", "5A", "1C", "5A", "21"]
+      },
+      "response": null
+    },
+    {
+      "type": "stream",
+      "name": "frame stream 1",
+      "file": "frames_1.json",
+      "match_start": {
+        "type": "hex",
+        "value": ["F0"]
+      },
+      "match_stop": {
+        "type": "hex",
+        "value": ["30"]
+      },
+      "interval": 0.1,
+      "block_length": 16
+    }
+  ]
+}
