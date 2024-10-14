@@ -2,6 +2,7 @@
 
 import serial
 import time
+from dtc import DTC
 
 
 class InvalidFrameError(ValueError):
@@ -78,6 +79,7 @@ def read_ecu_part_number(port: serial.Serial):
     stop_ack = port.read(1)
     if stop_ack != cmd_stop_ack:
         raise InvalidAckError(f"Unexpected stop ack received: {stop_ack.hex(' ')}")
+    print()
 
 
 def read_dtc(port: serial.Serial):
@@ -102,10 +104,34 @@ def read_dtc(port: serial.Serial):
     if buf[0] != 0xFF:
         raise InvalidFrameError("Unexpected starting byte in dtc frame data: f{buf[0]}")
     data_size = buf[1]
+    heading = "---- DTCs ----"
+    print(heading)
     if data_size == 2 and buf[2] == 0x55:
         print("No DTCs")
     else:
-        print(f"ECU reports {data_size} bytes of DTC codes: {buf[2:]}")
+        active_dtcs = []
+        old_dtcs = []
+        dtc_frame_data = buf[2:data_size+2]
+        for dtc_chunk in [dtc_frame_data[i:i+2] for i in range(0, len(dtc_frame_data), 2)]:
+            dtc = DTC(int(f"{dtc_chunk[0]:x}"), int(f"{dtc_chunk[1]:x}"))
+            if dtc.starts > 0:
+                old_dtcs.append(dtc)
+            else:
+                active_dtcs.append(dtc)
+        if len(active_dtcs) > 0:
+            print(f"ECU reports {len(active_dtcs)} active DTC codes:")
+            for dtc in active_dtcs:
+                print(f"\t{dtc.code} {dtc.name()}")
+        if len(old_dtcs) > 0:
+            print(f"ECU reports {len(old_dtcs)} previous DTC codes:")
+            for dtc in old_dtcs:
+                agestr = ""
+                if(dtc.starts != 0):
+                    agestr = f" - {dtc.starts} starts since last occurrence"
+                print(f"\t{dtc.code} {dtc.name(): <30}{agestr}")
+    print("-"*len(heading))
+    print()
+
 
 
 port = serial.Serial("/dev/ttyUSB0", 9600, timeout=None, xonxoff=False, rtscts=False, dsrdtr=False)
@@ -124,33 +150,83 @@ cmd_delim = 0xF0
 
 params = [
     0x0C,
-    # 0x0D
+    0x08,
+    0x00,
+    0x01,
+    0x0D,
+    0x17,
+    0x1F,
+    0x04,
+    0x05,
+    0x16,
+    0x09
 ]
 
 send_data = bytearray()
 
+print(f"Constructing command to stream {len(params)} parameters:")
 for p in params:
     send_data.append(cmd_ecu_param)
     send_data.append(p)
 
 send_data.append(cmd_delim)
-
+print(f"Sent command:\t{bytes_to_str(send_data)}")
 port.write(send_data)
 
 for p in params:
     p_ack = port.read(2)
     if p_ack[0] != invert_bytes(cmd_ecu_param) or p_ack[1] != p:
-        print(f"invalid ack for {p}")
+        print(f"invalid ack for {p}: {bytes_to_str(p_ack)}")
+        
+time.sleep(.1)
 port.write(cmd_stop)
 
-buf = bytearray()
+rec_frame = bytearray()
 data = port.read(1)
 while data != cmd_stop_ack:
-    buf += data
+    rec_frame += data
     data = port.read(1)
-print(bytes_to_str(buf))
-volts_unscaled = buf[2]
-print(f"Voltage: {volts_unscaled * 80} mV")
+first_frame = rec_frame[:rec_frame[1:].find(0xFF)+1]
+print(f"Frame received:\t{bytes_to_str(first_frame)}")
+print()
+if len(rec_frame) == 0:
+    raise InvalidFrameError("Received frame was empty")
+
+# print out decoded data
+decoded_header = "---- Decoded Data ----"
+print(decoded_header)
+
+unscaled = rec_frame[2]
+print(f"{'Voltage:':<15} {(unscaled * 80)/1000.0} V")
+
+unscaled = rec_frame[3]
+print(f"{'Coolant Temp:':<15} {unscaled-50} C, {((unscaled-50)*1.8)+32} F")
+
+rpm_msb = rec_frame[4]
+rpm_lsb = rec_frame[5]
+print(f"{'RPM:':<15} {(rpm_lsb+(rpm_msb<<8))*12.5} RPM  ( MSB={rpm_msb}, LSB={rpm_lsb} )")
+
+unscaled = rec_frame[6]
+print(f"{'TPS:':<15} {unscaled*20} mV")
+
+unscaled = rec_frame[7]
+print(f"{'IAC:':<15} {unscaled/2} %")
+
+unscaled = rec_frame[8]
+print(f"{'Bitreg:':<15} {unscaled:08b}")
+
+maf_msb = rec_frame[9]
+maf_lsb = rec_frame[10]
+print(f"{'MAF:':<15} {(maf_lsb+(maf_msb<<8))*5} mV  ( MSB={rpm_msb}, LSB={rpm_lsb} )")
+
+unscaled = rec_frame[11]
+print(f"{'Ign Timing:':<15} {110-unscaled} °BTDC")
+
+unscaled = rec_frame[12]
+print(f"{'O2:':<15} {unscaled*10} mV")
+
+print("-"*len(decoded_header))
+print()
 
 # cmd_stop = b'\x30'
 # cmd_stop_ack = invert_bytes(cmd_stop)
