@@ -13,8 +13,10 @@ logging.getLogger().propagate = True
 log = logging.getLogger(__name__)
 frame_log = logging.getLogger("frame_log")
 
+
 def show_plot(array, title):
     import matplotlib.pyplot as plt
+
     plt.plot(array)
     plt.title(title)
     plt.show()
@@ -23,7 +25,7 @@ def show_plot(array, title):
 class MockConsultSerial(ConsultSerial):
     def __init__(self, port: str, file: path):
         super().__init__(port)
-        self._Bps = self._baud / 8 # 9600 / 8 = 1200 Bytes per second
+        self._Bps = self._baud / 8  # 9600 / 8 = 1200 Bytes per second
         self._file = file
 
     def _open(self):
@@ -36,10 +38,11 @@ class MockConsultSerial(ConsultSerial):
         return len(data)
 
     def _read(self, size: int) -> bytes:
-        return b'\x00' * size
+        return b"\x00" * size
 
     def is_connected(self):
         return True
+
 
 def test_decode_response(caplog, data_registry):
     caplog.set_level(logging.DEBUG)
@@ -72,15 +75,15 @@ def test_decode_response(caplog, data_registry):
         log.debug(f"  Param: {param.name} - {param.get_registers().hex(' ').upper()}")
 
     # remove the start stream byte from the command sent
-    command_sent = test_data.command.rstrip(b'\xF0')
+    command_sent = test_data.command.rstrip(b"\xf0")
 
-    with (open(test_data.capture_file, 'rb') as file):
+    with open(test_data.capture_file, "rb") as file:
         # read until we find the frame start flag (0xFF), this is the response header (also contains error checks)
         header = bytearray()
         while byte := file.read(1):
             if len(byte) == 0:
                 raise ValueError("End of file reached before command check complete")
-            if byte == b'\xFF':
+            if byte == b"\xff":
                 file.seek(-1, 1)
                 break
             header.append(byte[0])
@@ -99,7 +102,7 @@ def test_decode_response(caplog, data_registry):
 
         # the next byte should be 0xFF
         frame_start = file.read(1)
-        assert frame_start == b'\xFF'
+        assert frame_start == b"\xff"
 
         # The next byte is the size of the data in the frame
         frame_data_size_byte = file.read(1)
@@ -112,15 +115,15 @@ def test_decode_response(caplog, data_registry):
         # Read the entirety of the first frame
         file.seek(-2, 1)
         first_frame = file.read(frame_size)
-        assert(len(first_frame) == frame_size)
+        assert len(first_frame) == frame_size
         frame_log.debug(f" 1: {first_frame.hex(' ').upper()}")
 
         # TODO - values are incorrect
         j_dict = {
-            "header": header.hex(' ').upper(),
-            "frame": first_frame.hex(' ').upper(),
+            "header": header.hex(" ").upper(),
+            "frame": first_frame.hex(" ").upper(),
             "frame_index": 1,
-            "parameters": []
+            "parameters": [],
         }
         for p in ci_def.get_enabled_parameters():
             p.update_value(header, first_frame)
@@ -128,7 +131,7 @@ def test_decode_response(caplog, data_registry):
 
         out_file_path = path("output/first_frame.json").absolute()
         out_file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(out_file_path, 'w') as f_out:
+        with open(out_file_path, "w") as f_out:
             f_out.write(json.dumps(j_dict, indent=2))
 
         # read the rest of the frames in the file
@@ -139,7 +142,7 @@ def test_decode_response(caplog, data_registry):
         plot_dict["RPM Sum"] = []
 
         while frame := file.read(frame_size):
-            n+=1
+            n += 1
             if len(frame) != frame_size:
                 log.debug(f"End of file reached after {n} frames")
                 break
@@ -156,7 +159,7 @@ def test_decode_response(caplog, data_registry):
                     if p.param_id == ci_utils.ParamID.ENGINE_SPEED_LR:
                         rpm_ref_value = p.get_value()
                 plot_dict["RPM Sum"].append(rpm_value + rpm_ref_value)
-                
+
         for name, values in plot_dict.items():
             show_plot(values, name)
     # consult = MockConsultSerial(port, response_playback_file)

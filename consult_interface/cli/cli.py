@@ -5,6 +5,7 @@ import click
 
 CONTEXT_SETTINGS = dict(auto_envvar_prefix="COMPLEX")
 
+
 class Environment:
     def __init__(self):
         self.verbose = False
@@ -39,7 +40,7 @@ class ComplexCLI(click.Group):
         try:
             mod = __import__(f"consult_interface.cli.commands.cmd_{name}", None, None, ["cli"])
         except ImportError as e:
-            print('ImportError:' + str(e))
+            print("ImportError:" + str(e))
             return
         return mod.cli
 

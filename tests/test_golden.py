@@ -32,7 +32,7 @@ def test_golden_decode_matches(golden, project_root_path):
     with capture.open("rb") as f:
         header = bytearray()
         while byte := f.read(1):
-            if byte == b"\xFF":
+            if byte == b"\xff":
                 f.seek(-1, 1)
                 break
             header.append(byte[0])

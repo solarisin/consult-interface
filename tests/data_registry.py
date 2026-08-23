@@ -1,5 +1,6 @@
 from pathlib import Path
 
+
 class DataEntry:
     def __init__(self, name: str, command: bytes, capture_file: Path, metadata: dict = None):
         self.name = name
@@ -7,8 +8,10 @@ class DataEntry:
         self.capture_file = capture_file
         self.metadata = metadata
 
+
 class DataRegistry:
     Registry = None
+
     def __init__(self):
         self.data = {}
 
@@ -41,12 +44,12 @@ class DataRegistry:
         # Stream of data values - capture file starts after command sent, no init
         DataRegistry.Registry.add(
             "test_1",
-            b'\x5A\x0B\x5A\x01\x5A\x08\x5A\x0C\x5A\x0D\x5A\x03\x5A\x05\x5A\x09\x5A\x13\x5A\x16\x5A\x17\x5A\x1A\x5A\x1C\x5A\x21\xF0',
-            Path(project_root_path, 'docs', 'test_data.hex')
+            b"\x5a\x0b\x5a\x01\x5a\x08\x5a\x0c\x5a\x0d\x5a\x03\x5a\x05\x5a\x09\x5a\x13\x5a\x16\x5a\x17\x5a\x1a\x5a\x1c\x5a\x21\xf0",
+            Path(project_root_path, "docs", "test_data.hex"),
         )
 
     @staticmethod
-    def get_registry(project_root_path = None) -> 'DataRegistry':
+    def get_registry(project_root_path=None) -> "DataRegistry":
         # generate the registry if it doesn't exist and a project root path is provided
         if DataRegistry.Registry is None:
             if project_root_path is None:

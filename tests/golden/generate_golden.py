@@ -21,8 +21,8 @@ CAPTURE = REPO_ROOT / "docs" / "test_data.hex"
 OUT = REPO_ROOT / "tests" / "golden" / "test_1_decoded.json"
 
 COMMAND = (
-    b"\x5A\x0B\x5A\x01\x5A\x08\x5A\x0C\x5A\x0D\x5A\x03\x5A\x05"
-    b"\x5A\x09\x5A\x13\x5A\x16\x5A\x17\x5A\x1A\x5A\x1C\x5A\x21\xF0"
+    b"\x5a\x0b\x5a\x01\x5a\x08\x5a\x0c\x5a\x0d\x5a\x03\x5a\x05"
+    b"\x5a\x09\x5a\x13\x5a\x16\x5a\x17\x5a\x1a\x5a\x1c\x5a\x21\xf0"
 )
 
 
@@ -34,7 +34,7 @@ def decode_all() -> dict:
     with CAPTURE.open("rb") as f:
         header = bytearray()
         while byte := f.read(1):
-            if byte == b"\xFF":
+            if byte == b"\xff":
                 f.seek(-1, 1)
                 break
             header.append(byte[0])

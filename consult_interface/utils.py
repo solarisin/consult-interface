@@ -11,7 +11,7 @@ def param_ids_to_param(param_ids: iter(ParamID)) -> list[EcuParam]:
             param = Definition.get_parameter(param_id)
             params.append(param)
         except Exception as e:
-            print(f'Exception converting parameter ID {param_id} to parameter: {e}')
+            print(f"Exception converting parameter ID {param_id} to parameter: {e}")
             raise e
     return params
 
@@ -27,7 +27,7 @@ def params_to_command(param_ids) -> bytes:
             cmd_bytes.append(Definition.cmd_register_param)
             cmd_bytes.append(param.get_register())
         except Exception as e:
-            print(f'Exception converting parameter {param.name} to command: {e}')
+            print(f"Exception converting parameter {param.name} to command: {e}")
             raise e
     cmd_bytes.append(Definition.start_stream)
     return cmd_bytes
@@ -45,7 +45,7 @@ def command_to_params(command: bytes) -> list[EcuParam]:
             param = Definition.get_parameter_from_register(command[i])
             params.append(param)
         except Exception as e:
-            print(f'Exception converting command byte {command[i]} to parameter: {e}')
+            print(f"Exception converting command byte {command[i]} to parameter: {e}")
             raise e
     return params
 
@@ -67,9 +67,9 @@ def scan_match(buf: bytes, match: bytes) -> (bool, bytearray):
     if len(buf) < match_len:
         return False, buf
     for idx in range(len(buf) - (match_len - 1)):
-        sub = buf[idx:idx + match_len]
+        sub = buf[idx : idx + match_len]
         if sub == match:
-            return True, buf[idx + match_len:]
+            return True, buf[idx + match_len :]
     return False, bytearray()
 
 
@@ -85,6 +85,6 @@ def invert_bytes(data: bytes | bytearray) -> bytearray:
 
 def bytes_to_str(b: bytes, binary=False):
     if binary:
-        return ' '.join(f'{b[i]:08b}' for i in range(len(b)))
+        return " ".join(f"{b[i]:08b}" for i in range(len(b)))
     b_str = b.hex().upper()
-    return ' '.join(b_str[i:i + 2] for i in range(0, len(b_str), 2))
+    return " ".join(b_str[i : i + 2] for i in range(0, len(b_str), 2))

@@ -6,6 +6,7 @@ from string import hexdigits
 class RegisterNotInHeaderError(ValueError):
     pass
 
+
 class EcuParam(ABC):
     def __init__(self, param_id, name, unit_label="", scale=1.0, offset=0.0):
         self.param_id = param_id
@@ -54,9 +55,9 @@ class EcuParam(ABC):
             "offset": self.offset,
             "enabled": self.enabled,
             "register": hex(self.get_register()).upper(),
-            "registers": self.get_registers().hex(' ').upper(),
+            "registers": self.get_registers().hex(" ").upper(),
             "unscaled_value": self.get_unscaled_value(),
-            "value": self.get_value()
+            "value": self.get_value(),
         }
 
     def get_value(self):
@@ -77,7 +78,7 @@ class EcuParam(ABC):
         # the next byte should be the frame length
         frame_data_bytes = frame[1]
         # verify the occurrences of \xA5 equals the frame bytes
-        param_count = header.count(b'\xA5')
+        param_count = header.count(b"\xa5")
         if param_count != frame_data_bytes:
             logging.error(f"Invalid frame byte count: {frame.hex(' ')}")
 
@@ -92,7 +93,9 @@ class EcuParam(ABC):
         try:
             param_index = header_data.index(bytes([register]))
         except ValueError:
-            raise RegisterNotInHeaderError(f"Register {register} not found in header data: {header_data.hex(' ')}")
+            raise RegisterNotInHeaderError(
+                f"Register {register} not found in header data: {header_data.hex(' ')}"
+            )
         # get the unscaled value from the frame data
         value = frame_data[param_index]
 
@@ -120,7 +123,9 @@ class EcuParamSingle(EcuParam):
 
 
 class EcuParamDual(EcuParam):
-    def __init__(self, param_id, name, register_msb: int, register_lsb: int, unit_label="", scale=1, offset=0):
+    def __init__(
+        self, param_id, name, register_msb: int, register_lsb: int, unit_label="", scale=1, offset=0
+    ):
         super().__init__(param_id, name, unit_label, scale, offset)
         self.register_msb = int(register_msb)
         self.register_lsb = int(register_lsb)
@@ -158,7 +163,9 @@ class EcuParamDual(EcuParam):
         except RegisterNotInHeaderError:
             self._unscaled_value_lsb = 0
         if not msb_found and not lsb_found:
-            raise RegisterNotInHeaderError(f"Neither register {self.register_msb} nor {self.register_lsb} found in header: {header.hex(' ')}")
+            raise RegisterNotInHeaderError(
+                f"Neither register {self.register_msb} nor {self.register_lsb} found in header: {header.hex(' ')}"
+            )
 
 
 class EcuParamBit(EcuParam):

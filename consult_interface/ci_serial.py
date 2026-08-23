@@ -4,12 +4,13 @@ from typing import Callable
 import serial
 import threading
 
-from .import utils as utils
+from . import utils as utils
 from .utils import Definition as Definition
 
 
 class InitializeFailedError(ValueError):
     pass
+
 
 # base class for communication to the nissan consult UART interface over a usb serial connection
 class ConsultSerial(ABC):
@@ -54,17 +55,18 @@ class ConsultSerial(ABC):
         return True
 
     def read_ecu_part_number(port: serial.Serial):
-        ecu_part_number_cmd = b'\xD0'
+        ecu_part_number_cmd = b"\xd0"
         ecu_part_number_ack = invert_bytes(ecu_part_number_cmd)
-        cmd_delimiter = b'\xF0'
-        cmd_stop = b'\x30'
+        cmd_delimiter = b"\xf0"
+        cmd_stop = b"\x30"
         cmd_stop_ack = invert_bytes(cmd_stop)
         port.write(ecu_part_number_cmd + cmd_delimiter)
 
         ack = port.read(1)
         if not ack == ecu_part_number_ack:
             raise InvalidAckError(
-                f"Received unexpected acknowledge byte '{ack.hex(' ')}', expected '{ecu_part_number_ack.hex(' ')}'")
+                f"Received unexpected acknowledge byte '{ack.hex(' ')}', expected '{ecu_part_number_ack.hex(' ')}'"
+            )
         port.write(cmd_stop)
         data = port.read(24)
         process_frame(ecu_part_number_cmd, data)
@@ -81,7 +83,9 @@ class ConsultSerial(ABC):
 
 # Thread class for reading ECU parameter frames from the serial port
 class ReadParamFramesThread(threading.Thread):
-    def __init__(self, port: serial.Serial, frame_bytes: int, process_frame: Callable[[bytes], None]):
+    def __init__(
+        self, port: serial.Serial, frame_bytes: int, process_frame: Callable[[bytes], None]
+    ):
         threading.Thread.__init__(self)
         self._frame_size = frame_bytes
         self._port = port
@@ -113,13 +117,15 @@ class ReadParamFramesThread(threading.Thread):
 
 # Implementation of the ConsultSerial class for the actual serial communication
 def _process_frame(frame: bytes):
-    print(f'Processing frame: {frame.hex()}')
+    print(f"Processing frame: {frame.hex()}")
 
 
 class ConsultSerialImpl(ConsultSerial):
     def __init__(self, port: str):
         super().__init__(port)
-        self._serial = serial.Serial(self._port, self._baud, timeout=None, xonxoff=False, rtscts=False, dsrdtr=False)
+        self._serial = serial.Serial(
+            self._port, self._baud, timeout=None, xonxoff=False, rtscts=False, dsrdtr=False
+        )
         ReadParamFramesThread(self._serial, 11, _process_frame).start()
 
     def _open(self):
@@ -131,7 +137,7 @@ class ConsultSerialImpl(ConsultSerial):
         try:
             self.stop_stream()
         except:
-            pass # We are shutting down, so we don't care if this fails
+            pass  # We are shutting down, so we don't care if this fails
         self._serial.close()
 
     def _write(self, data) -> int | None:
@@ -212,4 +218,3 @@ def create(port: str, mock=False) -> ConsultSerial:
 #     def _read(self):
 #         # data being read from the mocked ecu's output buffer
 #         pass
-
