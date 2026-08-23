@@ -2,6 +2,10 @@
 
 The JSON data file this reads was frozen before the refactor began and must
 never be regenerated -- a diff means behaviour changed, which is a bug.
+
+It was produced by tests/golden/generate_golden.py running against the
+pre-refactor code; that one-shot generator lives in git history at commit
+485fbdd and cannot run against the current API by design.
 """
 
 from __future__ import annotations

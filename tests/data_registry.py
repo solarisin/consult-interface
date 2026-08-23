@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 class DataEntry:
-    def __init__(self, name: str, command: bytes, capture_file: Path, metadata: dict = None):
+    def __init__(self, name: str, command: bytes, capture_file: Path, metadata: dict | None = None):
         self.name = name
         self.command = command
         self.capture_file = capture_file
@@ -15,7 +15,7 @@ class DataRegistry:
     def __init__(self):
         self.data = {}
 
-    def add(self, name: str, command: bytes, capture_file: Path, metadata: dict = None):
+    def add(self, name: str, command: bytes, capture_file: Path, metadata: dict | None = None):
         """
         Add a data file entry to the registry
         :param name: Identifier for the data entry (dict key)

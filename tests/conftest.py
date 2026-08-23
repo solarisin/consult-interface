@@ -13,9 +13,9 @@ def project_root_path(request):
 
 @pytest.fixture(scope="session")
 def data_registry(project_root_path):
-    logging.warn("INITIALIZATION")
+    logging.warning("INITIALIZATION")
     yield DataRegistry.get_registry(project_root_path)
-    logging.warn("TEAR DOWN")
+    logging.warning("TEAR DOWN")
 
 
 # pytest hooks
