@@ -2,7 +2,7 @@ import tomllib
 from enum import IntEnum
 from pathlib import Path
 
-from .params import EcuParam, EcuParamBit, EcuParamDual, EcuParamSingle
+from .params import BitParam, DualParam, ParamSpec, SingleParam
 
 TABLE_PATH = Path(__file__).with_name("params.toml")
 
@@ -81,7 +81,7 @@ class ConsultDefinition:
         self.start_stream = 0xF0
         self.stop_stream = 0x30
 
-        self._parameters: dict[ParamID, EcuParam] = {}
+        self._parameters: dict[ParamID, ParamSpec] = {}
         self._disputed: dict[ParamID, str] = {}
         self._load(table_path or TABLE_PATH)
         self._validate()
@@ -90,7 +90,7 @@ class ConsultDefinition:
         for pid, p in self._parameters.items():
             # Last-wins, deliberately: preserves the original reverse-map behaviour
             # where several bit params share one register.
-            self._register_to_param_id_dict[p.get_register()] = pid
+            self._register_to_param_id_dict[p.register] = pid
 
     def _load(self, path: Path) -> None:
         raw = tomllib.loads(path.read_text())
@@ -112,20 +112,33 @@ class ConsultDefinition:
             offset = row.get("offset", 0)
 
             if kind == "single":
-                param: EcuParam = EcuParamSingle(pid, name, row["register"], unit, scale, offset)
+                param: ParamSpec = SingleParam(
+                    param_id=pid,
+                    name=name,
+                    unit=unit,
+                    scale=scale,
+                    offset=offset,
+                    register_addr=row["register"],
+                )
             elif kind == "dual":
-                param = EcuParamDual(
-                    pid, name, row["register_msb"], row["register_lsb"], unit, scale, offset
+                param = DualParam(
+                    param_id=pid,
+                    name=name,
+                    unit=unit,
+                    scale=scale,
+                    offset=offset,
+                    register_msb=row["register_msb"],
+                    register_lsb=row["register_lsb"],
                 )
             elif kind == "bit":
                 bit = row["bit"]
                 if not 0 <= bit <= 7:
                     raise ParamTableError(f"{pid.name}: bit {bit} out of range 0-7")
-                param = EcuParamBit(pid, name, row["register"], bit)
+                param = BitParam(param_id=pid, name=name, register_addr=row["register"], bit=bit)
             else:
                 raise ParamTableError(f"{pid.name}: unknown kind {kind!r}")
 
-            for reg in param.get_registers():
+            for reg in param.registers:
                 if not 0x00 <= reg <= 0xFF:
                     raise ParamTableError(f"{pid.name}: register 0x{reg:X} out of range")
 
@@ -140,9 +153,9 @@ class ConsultDefinition:
                 "params.toml is missing rows for: " + ", ".join(sorted(m.name for m in missing))
             )
 
-        seen: set[tuple[bytes, int | None]] = set()
+        seen: set[tuple[tuple[int, ...], int | None]] = set()
         for p in self._parameters.values():
-            key = (p.get_registers(), p.bit if isinstance(p, EcuParamBit) else None)
+            key = (p.registers, p.bit if isinstance(p, BitParam) else None)
             if key in seen:
                 raise ParamTableError(f"duplicate register/bit combination: {p.name}")
             seen.add(key)
@@ -156,30 +169,24 @@ class ConsultDefinition:
             return None
         return self._register_to_param_id_dict[register]
 
-    def get_parameter_from_register(self, register: int) -> EcuParam | None:
+    def get_parameter_from_register(self, register: int) -> ParamSpec | None:
         pid = self.get_param_id_from_register(register)
         if pid is None or pid not in self._parameters:
             return None
         return self._parameters[pid]
 
-    def get_parameter_from_param_id(self, pid: ParamID) -> EcuParam | None:
+    def get_parameter_from_param_id(self, pid: ParamID) -> ParamSpec | None:
         if pid not in self._parameters:
             return None
         return self._parameters[pid]
 
-    def get_parameter(self, pid: ParamID) -> EcuParam | None:
+    def get_parameter(self, pid: ParamID) -> ParamSpec | None:
         if isinstance(pid, ParamID):
             return self.get_parameter_from_param_id(pid)
         raise TypeError(f"Expected ParamID, got {type(pid)}")
 
-    def get_parameter_list(self) -> list[EcuParam]:
+    def get_parameter_list(self) -> list[ParamSpec]:
         return list(self._parameters.values())
 
-    def get_parameter_dict(self) -> dict[ParamID, EcuParam]:
+    def get_parameter_dict(self) -> dict[ParamID, ParamSpec]:
         return self._parameters
-
-    def get_enabled_parameters(self) -> list[EcuParam]:
-        return [p for pid, p in self._parameters.items() if p.enabled]
-
-    def count_enabled_parameters(self) -> int:
-        return sum(1 for pid, p in self._parameters.items() if p.enabled)

@@ -1,193 +1,151 @@
+"""Immutable descriptions of ECU parameters.
+
+A ParamSpec says what a register MEANS. It never holds a value -- decoding a
+frame returns values (see frames.FrameParser) rather than mutating shared
+state, which is what makes decode calls order-independent and thread-safe.
+"""
+
+from __future__ import annotations
+
 import logging
-from abc import ABC, abstractmethod
-from string import hexdigits
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, override
+
+from .frames import FRAME_START, FrameLayout, RegisterNotInHeaderError
+
+if TYPE_CHECKING:
+    from .definition import ParamID
+
+log = logging.getLogger(__name__)
 
 
-class RegisterNotInHeaderError(ValueError):
-    pass
+def _data_bytes(frame: bytes, layout: FrameLayout) -> bytes:
+    """Strip the `FF <len>` prefix, logging (not raising) on malformed frames.
+
+    PRESERVED QUIRK: sanity failures log and continue, matching the original
+    EcuParam.sanity_check.
+    """
+    if frame[0] != FRAME_START:
+        log.error("Invalid frame start byte: %s", frame.hex(" "))
+    if frame[1] != len(layout):
+        log.error(
+            "Frame declares %d data bytes but header lists %d registers: %s",
+            frame[1],
+            len(layout),
+            frame.hex(" "),
+        )
+    return frame[2:]
 
 
-class EcuParam(ABC):
-    def __init__(self, param_id, name, unit_label="", scale=1.0, offset=0.0):
-        self.param_id = param_id
-        self.name = name
-        self.unit_label = unit_label
-        self.scale = scale
-        self.offset = offset
-        self.enabled = False
+@dataclass(frozen=True, slots=True)
+class ParamSpec:
+    """Base description of one ECU parameter."""
 
-    @abstractmethod
-    def get_registers(self) -> bytes:
-        """
-        Get the register bytes for this parameter, will be two bytes for dual parameters (MSB, LSB) and
-        one byte for single parameters
-        :return: the register bytes for this parameter
-        """
-        pass
+    param_id: ParamID
+    name: str
+    unit: str = ""
+    scale: float = 1.0
+    offset: float = 0.0
 
-    @abstractmethod
-    def get_register(self) -> int:
-        """
-        Get the register for this parameter, guaranteed to be a single byte. LSB is used for dual parameters
-        :return: the register byte for this parameter
-        """
-        pass
+    @property
+    def registers(self) -> tuple[int, ...]:
+        """Every register this parameter reads (MSB first for dual params)."""
+        raise NotImplementedError
 
-    @abstractmethod
-    def update_value(self, header: bytes, frame: bytes):
-        """
-        Update the value of this parameter from the given frame
-        :param header: the header of the frame
-        :param frame: the frame data
-        """
-        raise NotImplementedError("update_value is pure virtual")
-        pass
+    @property
+    def register(self) -> int:
+        """The single register identifying this parameter (LSB for dual)."""
+        raise NotImplementedError
 
-    @abstractmethod
-    def get_unscaled_value(self):
-        pass
+    def decode(self, layout: FrameLayout, frame: bytes) -> float | int:
+        """Read this parameter's value out of one frame."""
+        raise NotImplementedError
 
-    def to_dict(self) -> dict:
-        return {
-            "name": self.name,
-            "unit_label": self.unit_label,
-            "scale": self.scale,
-            "offset": self.offset,
-            "enabled": self.enabled,
-            "register": hex(self.get_register()).upper(),
-            "registers": self.get_registers().hex(" ").upper(),
-            "unscaled_value": self.get_unscaled_value(),
-            "value": self.get_value(),
-        }
-
-    def get_value(self):
-        unscaled = self.get_unscaled_value()
-        if unscaled is None:
-            return None
+    def _scaled(self, unscaled: int) -> float:
         return (unscaled * self.scale) + self.offset
 
-    def enable(self, state=True):
-        self.enabled = state
 
-    @staticmethod
-    def sanity_check(header: bytes, frame: bytes):
-        # do some sanity checks on the header/frame...
-        # frame should start with 0xFF
-        if not frame[0] == 0xFF:
-            logging.error(f"Invalid frame start byte: {frame.hex(' ')}")
-        # the next byte should be the frame length
-        frame_data_bytes = frame[1]
-        # verify the occurrences of \xA5 equals the frame bytes
-        param_count = header.count(b"\xa5")
-        if param_count != frame_data_bytes:
-            logging.error(f"Invalid frame byte count: {frame.hex(' ')}")
+@dataclass(frozen=True, slots=True)
+class SingleParam(ParamSpec):
+    """One register, scaled and offset."""
 
-    @staticmethod
-    def extract_value(header: bytes, frame: bytes, register: int):
-        # bytes 1 and 2 are 0xFF and the frame length, respectively
-        frame_data = frame[2:]
-        header_data = header[1::2]
-        # header is in the form b'\xA5\x[register_1]\xA5\x[register_2]...' which corresponds to the order of
-        # the bytes in the frame.
-        # find the position of this parameter in the frame from the header
-        try:
-            param_index = header_data.index(bytes([register]))
-        except ValueError:
-            raise RegisterNotInHeaderError(
-                f"Register {register} not found in header data: {header_data.hex(' ')}"
-            )
-        # get the unscaled value from the frame data
-        value = frame_data[param_index]
+    register_addr: int = 0
 
-        return value
+    @property
+    @override
+    def registers(self) -> tuple[int, ...]:
+        return (self.register_addr,)
+
+    @property
+    @override
+    def register(self) -> int:
+        return self.register_addr
+
+    @override
+    def decode(self, layout: FrameLayout, frame: bytes) -> float | int:
+        data = _data_bytes(frame, layout)
+        return self._scaled(data[layout.index_of(self.register_addr)])
 
 
-class EcuParamSingle(EcuParam):
-    def __init__(self, param_id, name, register: int, unit_label="", scale=1, offset=0):
-        super().__init__(param_id, name, unit_label, scale, offset)
-        self.register = register
-        self._unscaled_value = None
+@dataclass(frozen=True, slots=True)
+class DualParam(ParamSpec):
+    """Two registers combined as `msb << 8 | lsb`."""
 
-    def get_registers(self) -> bytes:
-        return bytes([self.get_register()])
+    register_msb: int = 0
+    register_lsb: int = 0
 
-    def get_register(self) -> int:
-        return self.register
+    @property
+    @override
+    def registers(self) -> tuple[int, ...]:
+        return (self.register_msb, self.register_lsb)
 
-    def get_unscaled_value(self):
-        return self._unscaled_value
-
-    def update_value(self, header: bytes, frame: bytes):
-        EcuParam.sanity_check(header, frame)
-        self._unscaled_value = EcuParam.extract_value(header, frame, self.register)
-
-
-class EcuParamDual(EcuParam):
-    def __init__(
-        self, param_id, name, register_msb: int, register_lsb: int, unit_label="", scale=1, offset=0
-    ):
-        super().__init__(param_id, name, unit_label, scale, offset)
-        self.register_msb = int(register_msb)
-        self.register_lsb = int(register_lsb)
-        self._unscaled_value_msb = None
-        self._unscaled_value_lsb = None
-
-    def get_registers(self) -> bytes:
-        return bytes([self.register_msb, self.register_lsb])
-
-    def get_register(self) -> int:
+    @property
+    @override
+    def register(self) -> int:
         return self.register_lsb
 
-    def get_unscaled_value(self):
-        value = None
-        if self._unscaled_value_msb is not None and self._unscaled_value_lsb is not None:
-            value = (self._unscaled_value_msb << 8) + self._unscaled_value_lsb
-        elif self._unscaled_value_msb is None and self._unscaled_value_lsb is not None:
-            value = self._unscaled_value_lsb
-        elif self._unscaled_value_lsb is None and self._unscaled_value_msb is not None:
-            value = self._unscaled_value_msb << 8
-        return value
+    @override
+    def decode(self, layout: FrameLayout, frame: bytes) -> float | int:
+        data = _data_bytes(frame, layout)
 
-    def update_value(self, header: bytes, frame: bytes):
-        EcuParam.sanity_check(header, frame)
-        msb_found = False
-        lsb_found = False
+        # PRESERVED QUIRK: a missing half substitutes 0; only both missing raises.
+        msb_found = lsb_found = True
         try:
-            self._unscaled_value_msb = EcuParam.extract_value(header, frame, self.register_msb)
-            msb_found = True
+            msb = data[layout.index_of(self.register_msb)]
         except RegisterNotInHeaderError:
-            self._unscaled_value_msb = 0
+            msb, msb_found = 0, False
         try:
-            self._unscaled_value_lsb = EcuParam.extract_value(header, frame, self.register_lsb)
-            lsb_found = True
+            lsb = data[layout.index_of(self.register_lsb)]
         except RegisterNotInHeaderError:
-            self._unscaled_value_lsb = 0
+            lsb, lsb_found = 0, False
+
         if not msb_found and not lsb_found:
             raise RegisterNotInHeaderError(
-                f"Neither register {self.register_msb} nor {self.register_lsb} found in header: {header.hex(' ')}"
+                f"neither register 0x{self.register_msb:02X} nor "
+                f"0x{self.register_lsb:02X} is in the header layout"
             )
+        return self._scaled((msb << 8) + lsb)
 
 
-class EcuParamBit(EcuParam):
-    def __init__(self, param_id, name, register: int, bit, unit_label="", scale=1, offset=0):
-        super().__init__(param_id, name, unit_label, scale, offset)
-        self.register = register
-        self.bit = bit
-        self.bit_value = None
+@dataclass(frozen=True, slots=True)
+class BitParam(ParamSpec):
+    """One bit of a status register."""
 
-    def get_registers(self) -> bytes:
-        return bytes([self.get_register()])
+    register_addr: int = 0
+    bit: int = 0
 
-    def get_register(self) -> int:
-        return self.register
+    @property
+    @override
+    def registers(self) -> tuple[int, ...]:
+        return (self.register_addr,)
 
-    def get_unscaled_value(self):
-        return self.bit_value
+    @property
+    @override
+    def register(self) -> int:
+        return self.register_addr
 
-    def get_value(self):
-        return self.bit_value
-
-    def update_value(self, header: bytes, frame: bytes):
-        EcuParam.sanity_check(header, frame)
-        value = EcuParam.extract_value(header, frame, self.register)
-        self.bit_value = (value >> self.bit) & 1
+    @override
+    def decode(self, layout: FrameLayout, frame: bytes) -> float | int:
+        # PRESERVED QUIRK: returns the raw bit, ignoring scale and offset.
+        data = _data_bytes(frame, layout)
+        return (data[layout.index_of(self.register_addr)] >> self.bit) & 1

@@ -12,6 +12,13 @@ That echo IS the frame layout descriptor: data bytes in each subsequent
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from .definition import ParamID
+    from .params import ParamSpec
 
 HEADER_MARKER = 0xA5
 FRAME_START = 0xFF
@@ -68,3 +75,27 @@ class FrameLayout:
 
     def __len__(self) -> int:
         return len(self.registers)
+
+
+class FrameParser:
+    """Decodes frames for a fixed layout and a fixed set of parameters."""
+
+    def __init__(self, layout: FrameLayout, specs: Iterable[ParamSpec]) -> None:
+        self._layout = layout
+        self._specs = tuple(specs)
+
+    @property
+    def layout(self) -> FrameLayout:
+        return self._layout
+
+    @property
+    def specs(self) -> tuple[ParamSpec, ...]:
+        return self._specs
+
+    def decode(self, frame: bytes) -> dict[ParamID, float | int]:
+        """Decode one frame into `{ParamID: value}`.
+
+        Raises RegisterNotInHeaderError if a spec's register is absent from the
+        layout (for DualParam, only when both its registers are absent).
+        """
+        return {spec.param_id: spec.decode(self._layout, frame) for spec in self._specs}

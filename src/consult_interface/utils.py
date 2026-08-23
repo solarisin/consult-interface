@@ -1,10 +1,12 @@
+from collections.abc import Iterable
+
 from .definition import ConsultDefinition, ParamID
-from .params import EcuParam, EcuParamSingle
+from .params import ParamSpec, SingleParam
 
 Definition = ConsultDefinition()
 
 
-def param_ids_to_param(param_ids: iter(ParamID)) -> list[EcuParam]:
+def param_ids_to_param(param_ids: Iterable[ParamID]) -> list[ParamSpec]:
     params = []
     for param_id in param_ids:
         try:
@@ -16,8 +18,8 @@ def param_ids_to_param(param_ids: iter(ParamID)) -> list[EcuParam]:
     return params
 
 
-def param_id_of_single_param(param: EcuParamSingle) -> ParamID:
-    return Definition.get_param_id_from_register(param.get_register())
+def param_id_of_single_param(param: SingleParam) -> ParamID:
+    return Definition.get_param_id_from_register(param.register)
 
 
 def params_to_command(param_ids) -> bytes:
@@ -25,7 +27,7 @@ def params_to_command(param_ids) -> bytes:
     for param in param_ids_to_param(param_ids):
         try:
             cmd_bytes.append(Definition.cmd_register_param)
-            cmd_bytes.append(param.get_register())
+            cmd_bytes.append(param.register)
         except Exception as e:
             print(f"Exception converting parameter {param.name} to command: {e}")
             raise e
@@ -33,7 +35,7 @@ def params_to_command(param_ids) -> bytes:
     return cmd_bytes
 
 
-def command_to_params(command: bytes) -> list[EcuParam]:
+def command_to_params(command: bytes) -> list[ParamSpec]:
     params = []
     for i in range(0, len(command)):
         if command[i] == Definition.cmd_register_param:

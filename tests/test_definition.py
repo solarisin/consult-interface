@@ -22,22 +22,22 @@ def test_param_count(definition):
 def test_engine_speed_hr_ported_verbatim(definition):
     p = definition.get_parameter(ParamID.ENGINE_SPEED_HR)
     assert p.name == "Engine Speed HR"
-    assert p.get_registers() == bytes([0x00, 0x01])
-    assert p.get_register() == 0x01
+    assert p.registers == (0x00, 0x01)
+    assert p.register == 0x01
     assert p.scale == 12.5
-    assert p.unit_label == "RPM"
+    assert p.unit == "RPM"
 
 
 def test_coolant_temp_offset_ported_verbatim(definition):
     p = definition.get_parameter(ParamID.COOLANT_TEMP)
-    assert p.get_register() == 0x08
+    assert p.register == 0x08
     assert p.offset == -50
     assert p.scale == 1
 
 
 def test_bit_param_ported_verbatim(definition):
     p = definition.get_parameter(ParamID.AC_ON)
-    assert p.get_register() == 0x13
+    assert p.register == 0x13
     assert p.bit == 4
 
 
