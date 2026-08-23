@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3
+FROM python:3.12
 
 SHELL ["/bin/bash", "-c"]
 
@@ -50,18 +50,14 @@ USER docker
 ENV HOME=/home/docker
 ENV PATH="${HOME}/.local/bin:${PATH}"
 
-# Install PySide6 without specifying a version to get the latest
-RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install --user pipx && \
-    python3 -m pipx ensurepath
-
-RUN pipx install poetry
+# Install uv (lands in ~/.local/bin, already on PATH above)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 COPY ./pyproject.toml /opt/consult-viewer/pyproject.toml
-COPY ./poetry.lock /opt/consult-viewer/poetry.lock
+COPY ./uv.lock /opt/consult-viewer/uv.lock
 
-RUN poetry install
+RUN uv sync --locked --no-install-project
 
 COPY ./src /opt/consult-viewer/src
 
-CMD [ "poetry", "run", "python", "src/mainview.py" ]
+CMD [ "uv", "run", "python", "src/mainview.py" ]
