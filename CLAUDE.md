@@ -4,26 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-uv-managed Python 3.10+ project (`uv.lock` is committed; there is no Poetry setup any more).
+uv-managed Python 3.12+ project (`uv.lock` is committed; uv manages the interpreter, so
+the system Python version does not matter).
 
 ```bash
 uv sync                              # create/update .venv from the lock file
-uv run pytest                        # full suite (6 tests, ~8s)
-uv run pytest tests/test_frame.py::test_decode_response   # single test
-uv run pytest -q --html=report.html  # pytest-html report (title set in conftest.py)
-uv run cli params                    # the Click CLI entry point (see pyproject [project.scripts])
+uv run pytest                        # full suite (43 tests, ~6s)
+uv run pytest tests/test_golden.py   # the behavioural contract alone
+uv run ruff check . && uv run ruff format .   # lint and format
+uv run mypy                          # strict type check over src/
+uv run cli params                    # the Click CLI entry point
 uv add <pkg> / uv add --dev <pkg>    # dev deps live in [dependency-groups].dev
 ```
 
-`pyproject.toml` sets `log_cli = true` at DEBUG, so pytest output is very verbose by design — tests use logging as their primary output channel, not just assertions.
-
-**Set `MPLBACKEND=Agg` when running the suite on a machine with a display.** The tail of `test_decode_response` calls `show_plot()` (`plt.show()`) once per enabled parameter, which blocks on an interactive backend.
+`pyproject.toml` sets `log_cli = true` at DEBUG, so pytest output is verbose by design.
 
 Docker (GUI viewer image, X11 passthrough):
 
 ```bash
 docker/build && docker/start
 ```
+
+Note the Dockerfile is stale independently of this: it copies `./src/mainview.py` and
+PySide6 system deps left over from the consult-viewer project, neither of which exists here.
 
 ## Architecture
 
@@ -41,41 +44,79 @@ Understanding this sequence explains most of the code:
 
 Frame decoding therefore always needs **both** the header and the frame: `EcuParam.extract_value` slices `header[1::2]` to recover the register order, finds the parameter's index there, and reads that index out of `frame[2:]`.
 
+
 ### Modules
 
-- **`definition.py`** — `ConsultDefinition` holds the command bytes and the full ECU parameter table (register addresses, units, scale, offset), keyed by the `ParamID` IntEnum. Its constructor runs a sanity check rejecting duplicate (registers, bit) combinations, and builds the register→`ParamID` reverse map.
-- **`params.py`** — `EcuParam` hierarchy. `EcuParamSingle` (one register), `EcuParamDual` (MSB+LSB combined as `msb << 8 | lsb`), `EcuParamBit` (one bit of a status register). Scaling is `unscaled * scale + offset`; `EcuParamBit` overrides `get_value` to return the raw bit.
-- **`utils.py`** — command↔parameter conversion, byte inversion helpers, and the module-level `Definition` singleton.
-- **`ci_serial.py`** — `ConsultSerial` ABC (protocol logic, transport-agnostic) plus `ConsultSerialImpl` (real `pyserial`) and `ReadParamFramesThread`. Subclass the ABC and implement `_open/_close/_read/_write/is_connected` to add a transport; `tests/test_frame.py::MockConsultSerial` is the working example.
-- **`cli/`** — Click multi-command group that auto-discovers `cli/commands/cmd_*.py` by filename. Adding a command means adding a `cmd_<name>.py` exporting `cli`; nothing else needs registering. Currently a scaffold.
+- **`definition.py`** — `ParamID` IntEnum and `ConsultDefinition`, which loads `params.toml`
+  via `tomllib`, validates it (ParamID bijection, register range, duplicate register/bit),
+  and exposes the lookups.
+- **`params.toml`** — the parameter table. Authoritative. `docs/params.csv` is human
+  reference material and is NOT loaded at runtime.
+- **`params.py`** — frozen `ParamSpec` descriptors: `SingleParam`, `DualParam` (MSB+LSB as
+  `msb << 8 | lsb`), `BitParam`. They hold no value state; `decode(layout, frame)` returns one.
+- **`frames.py`** — byte helpers, `FrameLayout.from_header()` (parses the `A5 <reg>` echo),
+  and `FrameParser.decode(frame) -> {ParamID: value}`.
+- **`transport.py`** — `Transport` Protocol plus `SerialTransport` (pyserial) and
+  `CaptureTransport` (replays a `.hex` capture). Add a transport by satisfying the Protocol.
+- **`session.py`** — `ConsultSession`: init handshake, register selection, streaming, stop.
+- **`cli/`** — Click group auto-discovering `cli/commands/cmd_*.py`. Still a scaffold.
 
-### Shared mutable state
+### Decoding is stateless
 
-`Definition` is a **process-wide singleton**, and the `EcuParam` objects it owns are stateful: `enable()` and `update_value()` mutate them in place. Decoding a frame means enabling the relevant params on the global `Definition` and then reading values back off those same objects. Anything touching parameter state is order-dependent and not thread-safe.
+There is no global mutable state and no `enabled` flag. Decoding is
+`ConsultSession(transport)` → `session.select(param_ids)` → `parser.decode(frame)`, which
+returns a fresh `{ParamID: value}` mapping. Parsers are cheap; construct one per selection.
 
-### Dual-register caveat
+### Preserved quirks
 
-`get_register()` returns the **LSB** for dual parameters, and the register→`ParamID` map is built from `get_register()` only — so an MSB register looked up via `get_parameter_from_register` returns `None`. `EcuParamDual.update_value` tolerates a missing MSB or LSB in the header (substituting 0) and only raises `RegisterNotInHeaderError` when both are absent.
+Deliberate, enforced by `tests/test_golden.py` — do not "fix" them without a new capture to
+re-baseline against:
+
+- `DualParam` substitutes `0` for a missing MSB or LSB, raising only when both are absent.
+- `BitParam` returns the raw bit, ignoring scale and offset.
+- Frame sanity failures log and continue rather than raising.
+- The register→ParamID map is last-wins, so register `0x13` resolves only to `CLSD_THL_POS`
+  and `0x21` only to `RH_BANK_LEAN`. Five bit params are unreachable that way. Probably a
+  latent bug; fixing it would decode extra parameters and break the golden contract.
+
+### Disputed parameter values
+
+`BATTERY_VOLTAGE`, `TPS`, and `VEHICLE_SPEED` carry a `disputed` note in `params.toml` where
+the code disagrees with `docs/params.csv` about units. Values are kept at the code's original
+figures pending confirmation on a real ECU. `BATTERY_VOLTAGE` decodes to ~14240 labelled "V",
+which is almost certainly millivolts.
+
+## The golden contract
+
+`tests/test_golden.py` decodes all 39,147 frames of `docs/test_data.hex` and compares against
+`tests/golden/test_1_decoded.json` — a sampled table plus a SHA-256 over the full stream,
+frozen before the 3.12 refactor.
+
+**Never regenerate that file to make a failing test pass.** A diff means decoded output
+changed, which is a bug unless you intended it. If you intend it, re-baseline deliberately
+and say so in the commit.
 
 ## Testing against captures
 
-There is no hardware in the test loop. Tests replay raw byte captures:
+No hardware in the test loop. `CaptureTransport` replays a `.hex` capture through the same
+`Transport` protocol the real serial link uses. Capture files start *after* the command was
+sent and contain no init sequence, so `select()` reads the ECU's header echo straight from
+the file and `initialize()` is skipped.
 
-- `tests/data_registry.py` maps a name → (command bytes sent, capture file). Add new captures there.
-- `tests/conftest.py` exposes it as the session-scoped `data_registry` fixture, rooted at pytest's `rootpath`.
-- Capture files (e.g. `docs/test_data.hex`) are raw ECU output starting *after* the command was sent, with no init sequence.
+Replaying a capture requires selecting the same parameters, in the same order, that produced
+it — the header echo defines the frame layout, so a different selection decodes garbage.
 
-`mock_ecu/` is a separate script that replays scripted responses from `behaviors.json` over a serial port. It opens `behaviors.json` by relative path, so run it from inside `mock_ecu/`. It is not imported by the package or the tests.
+`tests/data_registry.py` maps a name → (command bytes sent, capture file); `tests/conftest.py`
+exposes it as the session-scoped `data_registry` fixture.
+
+`mock_ecu/` is a separate script. Despite its name it does not serve a serial port — it only
+pretty-prints `behaviors.json`. It is not imported by the package or the tests.
 
 ## Reference material and scratch code
 
-- `docs/` holds the authoritative protocol PDFs (**Issue 7 is the newest**), `params.csv` (register table), and pinout/schematic material. When adding or correcting a parameter's register, scale, or offset, check these rather than inferring from existing entries.
-- `concept/` is exploratory scratch code kept for reference — standalone scripts, not part of the package. Don't refactor or lint it as if it were library code.
-
-## Known rough edges
-
-Pre-existing, not regressions — leave them alone unless the task is to fix them:
-
-- `ci_serial.create(port, mock=True)` raises `NotImplementedError`; the mock transport at the bottom of `ci_serial.py` is commented out.
-- `ConsultSerial.read_ecu_part_number` is dead code — it takes `port` instead of `self` and references undefined `process_frame` / `InvalidAckError`.
-- `test_frame.py` carries a `# TODO - values are incorrect` on the decoded output; frame-value scaling is not yet trusted end to end.
+- `docs/` holds the authoritative protocol PDFs (**Issue 7 is the newest**), `params.csv`
+  (register table), and pinout/schematic material. When adding or correcting a parameter's
+  register, scale, or offset, check these rather than inferring from existing entries.
+- `docs/superpowers/` holds the design spec and implementation plan for the 3.12 modernization.
+- `concept/` is exploratory scratch code kept for reference — standalone scripts, not part of
+  the package. Excluded from ruff and mypy. Don't refactor or lint it as if it were library code.

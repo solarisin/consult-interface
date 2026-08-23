@@ -55,7 +55,8 @@ class SerialTransport:
         return bytes(self._serial.read(size))
 
     def write(self, data: bytes) -> int | None:
-        return self._serial.write(data)
+        written: int | None = self._serial.write(data)
+        return written
 
     def is_connected(self) -> bool:
         return bool(self._serial.is_open)

@@ -23,7 +23,7 @@ def _data_bytes(frame: bytes, layout: FrameLayout) -> bytes:
     """Strip the `FF <len>` prefix, logging (not raising) on malformed frames.
 
     PRESERVED QUIRK: sanity failures log and continue, matching the original
-    EcuParam.sanity_check.
+    pre-0.2 EcuParam.sanity_check (removed; see git history).
     """
     if frame[0] != FRAME_START:
         log.error("Invalid frame start byte: %s", frame.hex(" "))

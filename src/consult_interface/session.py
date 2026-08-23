@@ -37,10 +37,13 @@ class ConsultSession:
     def definition(self) -> ConsultDefinition:
         return self._definition
 
-    def initialize(self) -> bool:
-        """Perform the FF FF EF handshake."""
+    def _ensure_open(self) -> None:
         if not self._transport.is_connected():
             self._transport.open()
+
+    def initialize(self) -> bool:
+        """Perform the FF FF EF handshake."""
+        self._ensure_open()
 
         command = bytes(self._definition.init)
         self._transport.write(command)
@@ -56,7 +59,13 @@ class ConsultSession:
         return True
 
     def select(self, param_ids: Iterable[ParamID]) -> FrameParser:
-        """Request parameters and return a parser built from the ECU's echo."""
+        """Request parameters and return a parser built from the ECU's echo.
+
+        Replaying a capture file skips `initialize` -- captures start after the
+        command was sent -- so this opens the transport itself if needed.
+        """
+        self._ensure_open()
+
         # Narrow explicitly -- mypy --strict cannot follow Optional through a
         # list comprehension guarded by any().
         specs: list[ParamSpec] = []

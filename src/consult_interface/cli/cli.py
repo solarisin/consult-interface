@@ -1,23 +1,23 @@
 import os
 import sys
-import click
 
+import click
 
 CONTEXT_SETTINGS = dict(auto_envvar_prefix="COMPLEX")
 
 
 class Environment:
-    def __init__(self):
+    def __init__(self) -> None:
         self.verbose = False
         self.home = os.getcwd()
 
-    def log(self, msg, *args):
+    def log(self, msg: str, *args: object) -> None:
         """Logs a message to stderr."""
         if args:
             msg %= args
         click.echo(msg, file=sys.stderr)
 
-    def vlog(self, msg, *args):
+    def vlog(self, msg: str, *args: object) -> None:
         """Logs a message to stderr only if verbose is enabled."""
         if self.verbose:
             self.log(msg, *args)
@@ -28,21 +28,22 @@ cmd_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "commands")
 
 
 class ComplexCLI(click.Group):
-    def list_commands(self, ctx):
-        rv = []
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        rv: list[str] = []
         for filename in os.listdir(cmd_folder):
             if filename.endswith(".py") and filename.startswith("cmd_"):
                 rv.append(filename[4:-3])
         rv.sort()
         return rv
 
-    def get_command(self, ctx, name):
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         try:
-            mod = __import__(f"consult_interface.cli.commands.cmd_{name}", None, None, ["cli"])
+            mod = __import__(f"consult_interface.cli.commands.cmd_{cmd_name}", None, None, ["cli"])
         except ImportError as e:
             print("ImportError:" + str(e))
-            return
-        return mod.cli
+            return None
+        command: click.Command = mod.cli
+        return command
 
 
 @click.command(cls=ComplexCLI, context_settings=CONTEXT_SETTINGS)
@@ -53,7 +54,7 @@ class ComplexCLI(click.Group):
 )
 @click.option("-v", "--verbose", is_flag=True, help="Enables verbose mode.")
 @pass_environment
-def cli(ctx, verbose, home):
+def cli(ctx: Environment, verbose: bool, home: str | None) -> None:
     """A complex command line interface."""
     ctx.verbose = verbose
     if home is not None:

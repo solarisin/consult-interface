@@ -106,6 +106,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-html" },
     { name = "ruff" },
+    { name = "types-pyserial" },
 ]
 
 [package.metadata]
@@ -120,6 +121,7 @@ dev = [
     { name = "pytest", specifier = ">=8.3.2,<9.0" },
     { name = "pytest-html", specifier = ">=4.1.1,<5.0" },
     { name = "ruff", specifier = ">=0.6" },
+    { name = "types-pyserial", specifier = ">=3.5.0.20260712" },
 ]
 
 [[package]]
@@ -480,6 +482,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/aa/28/0c6dd865859c6d17bc8ccc34cb72b0e02d6c7eb25e8a1e22b5bea681e2c0/ruff-0.16.4-py3-none-win32.whl", hash = "sha256:312769988007aaeb8e189b443ccdd03c0e6374489e053467be6d96518ebff76e", size = 10021687, upload-time = "2026-08-20T17:43:52.281Z" },
     { url = "https://files.pythonhosted.org/packages/a3/03/e724450f621698117f9aa6dd241c94d0274ae96781378dc86745ae29f0e7/ruff-0.16.4-py3-none-win_amd64.whl", hash = "sha256:05d9d27a18c4bcbefada602480ec9e01e0bc949d432e0ced5df77edac195919c", size = 10567657, upload-time = "2026-08-20T17:43:54.78Z" },
     { url = "https://files.pythonhosted.org/packages/0e/fe/da8b9e1347696bb22120b77280ec5ce25d500ca5cb39d5ad6e5c18de19c1/ruff-0.16.4-py3-none-win_arm64.whl", hash = "sha256:a3a61621c9b6f6a89573e938a080e648f1695baa3f58570a3a707bc51ff65a21", size = 10451579, upload-time = "2026-08-20T17:43:57.135Z" },
+]
+
+[[package]]
+name = "types-pyserial"
+version = "3.5.0.20260712"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ec/e7/6ce4a4ea526397fd0a1ac122085673f3f81fd3e43f4c77bd2dbe7743d644/types_pyserial-3.5.0.20260712.tar.gz", hash = "sha256:19c0a184e9f39e1282783ed7d35d89d73503bd482b39e072299983704e805d00", size = 20875, upload-time = "2026-07-12T05:13:50.657Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/66/00bb637724c659494a41687bf06ac613a860720f7183109fca62986d4f69/types_pyserial-3.5.0.20260712-py3-none-any.whl", hash = "sha256:ee4f34b7432a0608bb016c88cb5b1ad3b960df4784289de56dda471503ceb53d", size = 25323, upload-time = "2026-07-12T05:13:49.523Z" },
 ]
 
 [[package]]

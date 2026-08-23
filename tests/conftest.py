@@ -1,6 +1,7 @@
 import logging
 
 import pytest
+
 from tests.data_registry import DataRegistry
 
 # pytest fixtures
