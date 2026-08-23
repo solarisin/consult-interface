@@ -1,5 +1,10 @@
-from .params import EcuParam, EcuParamSingle, EcuParamDual, EcuParamBit
+import tomllib
 from enum import IntEnum
+from pathlib import Path
+
+from .params import EcuParam, EcuParamBit, EcuParamDual, EcuParamSingle
+
+TABLE_PATH = Path(__file__).with_name("params.toml")
 
 
 class ParamID(IntEnum):
@@ -64,203 +69,87 @@ class ParamID(IntEnum):
     RH_BANK_LEAN = 58
 
 
+class ParamTableError(ValueError):
+    """Raised when params.toml is malformed or disagrees with ParamID."""
+
+
 class ConsultDefinition:
-    def __init__(self):
+    def __init__(self, table_path: Path | None = None) -> None:
         self.init = [0xFF, 0xFF, 0xEF]
-        # cmd flag to read the ecu part number
         self.cmd_ecu_part_number = 0xD0
-        # cmd flag to request an ecu register to read (can request multiple registers at once)
         self.cmd_register_param = 0x5A
-        # terminates registration of values, and also signals the ecu our message is complete, and to start streaming
         self.start_stream = 0xF0
-        # ex: \x5A\x0B\x5A\x01 -> sets requested registers to b'0x0B' and b'0x01' (vehicle speed and engine speed),
-        # then instructs the ECU to start streaming data
         self.stop_stream = 0x30
 
-        # ECU parameters
-        self._parameters = dict()
-        self._parameters[ParamID.ENGINE_SPEED_HR] = EcuParamDual(
-            ParamID.ENGINE_SPEED_HR, "Engine Speed HR", 0x00, 0x01, "RPM", 12.5
-        )
-        self._parameters[ParamID.ENGINE_SPEED_LR] = EcuParamDual(
-            ParamID.ENGINE_SPEED_LR, "Engine Speed LR", 0x02, 0x03, "RPM", 8
-        )
-        self._parameters[ParamID.MAF_VOLTAGE] = EcuParamDual(
-            ParamID.MAF_VOLTAGE, "MAF Voltage", 0x04, 0x05, "mV", 5
-        )
-        self._parameters[ParamID.MAF_VOLTAGE_RH] = EcuParamDual(
-            ParamID.MAF_VOLTAGE_RH, "MAF Voltage RH", 0x06, 0x07, "mV", 5
-        )
-        self._parameters[ParamID.COOLANT_TEMP] = EcuParamSingle(
-            ParamID.COOLANT_TEMP, "Coolant Temp", 0x08, "C", offset=-50
-        )
-        self._parameters[ParamID.O2_VOLTAGE_LH] = EcuParamSingle(
-            ParamID.O2_VOLTAGE_LH, "O2 Voltage LH", 0x09, "mV", 10
-        )
-        self._parameters[ParamID.O2_VOLTAGE_RH] = EcuParamSingle(
-            ParamID.O2_VOLTAGE_RH, "O2 Voltage RH", 0x0A, "mV", 10
-        )
-        self._parameters[ParamID.VEHICLE_SPEED] = EcuParamSingle(
-            ParamID.VEHICLE_SPEED, "Vehicle Speed", 0x0B, "km/h", 2
-        )
-        self._parameters[ParamID.BATTERY_VOLTAGE] = EcuParamSingle(
-            ParamID.BATTERY_VOLTAGE, "Battery Voltage", 0x0C, "V", 80
-        )
-        self._parameters[ParamID.TPS] = EcuParamSingle(ParamID.TPS, "TPS", 0x0D, "%", 20)
-        self._parameters[ParamID.FUEL_TEMP] = EcuParamSingle(
-            ParamID.FUEL_TEMP, "Fuel Temp", 0x0F, "C", offset=-50
-        )
-        self._parameters[ParamID.IAT] = EcuParamSingle(ParamID.IAT, "IAT", 0x11, "C", offset=-50)
-        self._parameters[ParamID.EGT] = EcuParamSingle(ParamID.EGT, "EGT", 0x12, "mV", 20)
-        self._parameters[ParamID.INJECTOR_TIME_LH] = EcuParamDual(
-            ParamID.INJECTOR_TIME_LH, "Injector Time LH", 0x14, 0x15, "ms", 1 / 100
-        )
-        self._parameters[ParamID.IGNITION_TIMING] = EcuParamSingle(
-            ParamID.IGNITION_TIMING, "Ignition Timing", 0x16, "deg BTDC", -1, 110
-        )
-        self._parameters[ParamID.AAC_VALVE] = EcuParamSingle(
-            ParamID.AAC_VALVE, "AAC Valve", 0x17, "%", 1 / 2
-        )
-        self._parameters[ParamID.AF_ALPHA_LH] = EcuParamSingle(
-            ParamID.AF_ALPHA_LH, "AF Alpha LH", 0x1A, "%"
-        )
-        self._parameters[ParamID.AF_ALPHA_RH] = EcuParamSingle(
-            ParamID.AF_ALPHA_RH, "AF Alpha RH", 0x1B, "%"
-        )
-        self._parameters[ParamID.AF_ALPHA_SELFLEARN_LH] = EcuParamSingle(
-            ParamID.AF_ALPHA_SELFLEARN_LH, "AF Alpha Selflearn LH", 0x1C, "%"
-        )
-        self._parameters[ParamID.AF_ALPHA_SELFLEARN_RH] = EcuParamSingle(
-            ParamID.AF_ALPHA_SELFLEARN_RH, "AF Alpha Selflearn RH", 0x1D, "%"
-        )
-        self._parameters[ParamID.INJECTOR_TIME_RH] = EcuParamDual(
-            ParamID.INJECTOR_TIME_RH, "Injector Time RH", 0x22, 0x23, "ms", 1 / 100
-        )
-        self._parameters[ParamID.PURGE_VALVE_STEP] = EcuParamSingle(
-            ParamID.PURGE_VALVE_STEP, "Purge Valve Step", 0x25, "steps"
-        )
-        self._parameters[ParamID.TANK_FUEL_TEMP] = EcuParamSingle(
-            ParamID.TANK_FUEL_TEMP, "Tank Fuel Temp", 0x26
-        )
-        self._parameters[ParamID.FPCM_VOLTAGE] = EcuParamSingle(
-            ParamID.FPCM_VOLTAGE, "FPCM Voltage", 0x27, "V"
-        )
-        self._parameters[ParamID.WG_SOLENOID_POS] = EcuParamSingle(
-            ParamID.WG_SOLENOID_POS, "WG Solenoid Pos", 0x28
-        )
-        self._parameters[ParamID.BOOST_VOLTAGE] = EcuParamSingle(
-            ParamID.BOOST_VOLTAGE, "Boost Voltage", 0x29, "V"
-        )
-        self._parameters[ParamID.ENGINE_MOUNT] = EcuParamSingle(
-            ParamID.ENGINE_MOUNT, "Engine Mount", 0x2A
-        )
-        self._parameters[ParamID.POSITION_COUNTER] = EcuParamSingle(
-            ParamID.POSITION_COUNTER, "Position Counter", 0x2E
-        )
-        self._parameters[ParamID.FUEL_GAUGE_VOLTAGE] = EcuParamSingle(
-            ParamID.FUEL_GAUGE_VOLTAGE, "Fuel Gauge Voltage", 0x2F, "V"
-        )
-        self._parameters[ParamID.O2_FRONT_B1_VOLTAGE] = EcuParamSingle(
-            ParamID.O2_FRONT_B1_VOLTAGE, "O2 Front B1 Voltage", 0x30, "V"
-        )
-        self._parameters[ParamID.O2_FRONT_B2_VOLTAGE] = EcuParamSingle(
-            ParamID.O2_FRONT_B2_VOLTAGE, "O2 Front B2 Voltage", 0x31, "V"
-        )
-        self._parameters[ParamID.IGNITION_SWITCH] = EcuParamSingle(
-            ParamID.IGNITION_SWITCH, "Ignition Switch", 0x32
-        )
-        self._parameters[ParamID.CAL_LD_VALUE] = EcuParamSingle(
-            ParamID.CAL_LD_VALUE, "CAL LD Value", 0x33
-        )
-        self._parameters[ParamID.FUEL_SCHEDULE] = EcuParamSingle(
-            ParamID.FUEL_SCHEDULE, "Fuel Schedule", 0x34
-        )
-        self._parameters[ParamID.O2_REAR_B1_VOLTAGE] = EcuParamSingle(
-            ParamID.O2_REAR_B1_VOLTAGE, "O2 Rear B1 Voltage", 0x35, "V"
-        )
-        self._parameters[ParamID.O2_REAR_B2_VOLTAGE] = EcuParamSingle(
-            ParamID.O2_REAR_B2_VOLTAGE, "O2 Rear B2 Voltage", 0x36, "V"
-        )
-        self._parameters[ParamID.THROTTLE_POSITION_ABS] = EcuParamSingle(
-            ParamID.THROTTLE_POSITION_ABS, "Throttle Position ABS", 0x37, "%"
-        )
-        self._parameters[ParamID.MAF_SCALED] = EcuParamSingle(
-            ParamID.MAF_SCALED, "MAF Scaled", 0x38, "g/s"
-        )
-        self._parameters[ParamID.EVAP_PRESSURE_VOLTAGE] = EcuParamSingle(
-            ParamID.EVAP_PRESSURE_VOLTAGE, "Evap Pressure Voltage", 0x39, "V"
-        )
-        self._parameters[ParamID.ABS_PRESSURE_VOLTAGE_A] = EcuParamSingle(
-            ParamID.ABS_PRESSURE_VOLTAGE_A, "ABS Pressure Voltage A", 0x3A, "V"
-        )
-        self._parameters[ParamID.ABS_PRESSURE_VOLTAGE_B] = EcuParamSingle(
-            ParamID.ABS_PRESSURE_VOLTAGE_B, "ABS Pressure Voltage B", 0x4A, "V"
-        )
-        self._parameters[ParamID.FPCM_PRESSURE_VOLTAGE_A] = EcuParamSingle(
-            ParamID.FPCM_PRESSURE_VOLTAGE_A, "FPCM Pressure Voltage A", 0x52, "V"
-        )
-        self._parameters[ParamID.FPCM_PRESSURE_VOLTAGE_B] = EcuParamSingle(
-            ParamID.FPCM_PRESSURE_VOLTAGE_B, "FPCM Pressure Voltage B", 0x53, "V"
-        )
-        self._parameters[ParamID.AC_ON] = EcuParamBit(ParamID.AC_ON, "A/C On", 0x13, 4)
-        self._parameters[ParamID.POWER_STEERING] = EcuParamBit(
-            ParamID.POWER_STEERING, "Power Steering", 0x13, 3
-        )
-        self._parameters[ParamID.PARK_NEUTRAL] = EcuParamBit(
-            ParamID.PARK_NEUTRAL, "Park/Neutral", 0x13, 2
-        )
-        self._parameters[ParamID.CRANKING] = EcuParamBit(ParamID.CRANKING, "Cranking", 0x13, 1)
-        self._parameters[ParamID.CLSD_THL_POS] = EcuParamBit(
-            ParamID.CLSD_THL_POS, "CLSD/THL POS", 0x13, 0
-        )
-        self._parameters[ParamID.AC_RELAY] = EcuParamBit(ParamID.AC_RELAY, "A/C Relay", 0x1E, 7)
-        self._parameters[ParamID.FUEL_PUMP_RELAY] = EcuParamBit(
-            ParamID.FUEL_PUMP_RELAY, "Fuel Pump Relay", 0x1E, 6
-        )
-        self._parameters[ParamID.VTC_SOLENOID] = EcuParamBit(
-            ParamID.VTC_SOLENOID, "VTC Solenoid", 0x1E, 5
-        )
-        self._parameters[ParamID.COOLANT_FAN_HI] = EcuParamBit(
-            ParamID.COOLANT_FAN_HI, "Coolant Fan Hi", 0x1E, 1
-        )
-        self._parameters[ParamID.COOLANT_FAN_LO] = EcuParamBit(
-            ParamID.COOLANT_FAN_LO, "Coolant Fan Lo", 0x1E, 0
-        )
-        self._parameters[ParamID.P_REG_CONTROL_VALVE] = EcuParamBit(
-            ParamID.P_REG_CONTROL_VALVE, "P/Reg control valve", 0x1F, 6
-        )
-        self._parameters[ParamID.WG_SOLENOID_STATE] = EcuParamBit(
-            ParamID.WG_SOLENOID_STATE, "WG Solenoid State", 0x1F, 5
-        )
-        self._parameters[ParamID.IACV_FICD_SOLENOID] = EcuParamBit(
-            ParamID.IACV_FICD_SOLENOID, "IACV FICD Solenoid", 0x1F, 3
-        )
-        self._parameters[ParamID.EGR_SOLENOID] = EcuParamBit(
-            ParamID.EGR_SOLENOID, "EGR Solenoid", 0x1F, 0
-        )
-        self._parameters[ParamID.LH_BANK_LEAN] = EcuParamBit(
-            ParamID.LH_BANK_LEAN, "LH Bank Lean", 0x21, 7
-        )
-        self._parameters[ParamID.RH_BANK_LEAN] = EcuParamBit(
-            ParamID.RH_BANK_LEAN, "RH Bank Lean", 0x21, 6
-        )
+        self._parameters: dict[ParamID, EcuParam] = {}
+        self._disputed: dict[ParamID, str] = {}
+        self._load(table_path or TABLE_PATH)
+        self._validate()
 
-        # perform a param sanity check -combination of registers + bit positions must be unique
-        seen = set()
-        for id, p in self._parameters.items():
-            registers = p.get_registers()
-            key = (registers, p.bit if isinstance(p, EcuParamBit) else None)
-            if key in seen:
-                raise ValueError(
-                    f"ECU parameter Sanity Check failed: Duplicate parameter: {p.name}"
+        self._register_to_param_id_dict: dict[int, ParamID] = {}
+        for pid, p in self._parameters.items():
+            # Last-wins, deliberately: preserves the original reverse-map behaviour
+            # where several bit params share one register.
+            self._register_to_param_id_dict[p.get_register()] = pid
+
+    def _load(self, path: Path) -> None:
+        raw = tomllib.loads(path.read_text())
+        if raw.get("schema_version") != 1:
+            raise ParamTableError(f"unsupported schema_version: {raw.get('schema_version')!r}")
+
+        for row in raw.get("param", []):
+            try:
+                pid = ParamID[row["id"]]
+            except KeyError as exc:
+                raise ParamTableError(f"unknown ParamID: {row.get('id')!r}") from exc
+            if pid in self._parameters:
+                raise ParamTableError(f"duplicate row for {pid.name}")
+
+            kind = row.get("kind")
+            name = row["name"]
+            unit = row.get("unit", "")
+            scale = row.get("scale", 1)
+            offset = row.get("offset", 0)
+
+            if kind == "single":
+                param: EcuParam = EcuParamSingle(pid, name, row["register"], unit, scale, offset)
+            elif kind == "dual":
+                param = EcuParamDual(
+                    pid, name, row["register_msb"], row["register_lsb"], unit, scale, offset
                 )
+            elif kind == "bit":
+                bit = row["bit"]
+                if not 0 <= bit <= 7:
+                    raise ParamTableError(f"{pid.name}: bit {bit} out of range 0-7")
+                param = EcuParamBit(pid, name, row["register"], bit)
+            else:
+                raise ParamTableError(f"{pid.name}: unknown kind {kind!r}")
+
+            for reg in param.get_registers():
+                if not 0x00 <= reg <= 0xFF:
+                    raise ParamTableError(f"{pid.name}: register 0x{reg:X} out of range")
+
+            self._parameters[pid] = param
+            if note := row.get("disputed"):
+                self._disputed[pid] = note
+
+    def _validate(self) -> None:
+        missing = set(ParamID) - set(self._parameters)
+        if missing:
+            raise ParamTableError(
+                "params.toml is missing rows for: " + ", ".join(sorted(m.name for m in missing))
+            )
+
+        seen: set[tuple[bytes, int | None]] = set()
+        for p in self._parameters.values():
+            key = (p.get_registers(), p.bit if isinstance(p, EcuParamBit) else None)
+            if key in seen:
+                raise ParamTableError(f"duplicate register/bit combination: {p.name}")
             seen.add(key)
 
-        # create a dict containing register -> param_id mappings. THis only contains the mapping for LSB
-        # registers of dual parameters
-        self._register_to_param_id_dict = dict()
-        for pid, p in self._parameters.items():
-            self._register_to_param_id_dict[p.get_register()] = pid
+    def disputed_note(self, pid: ParamID) -> str | None:
+        """Return the params.csv conflict note for this param, if any."""
+        return self._disputed.get(pid)
 
     def get_param_id_from_register(self, register: int) -> ParamID | None:
         if register not in self._register_to_param_id_dict:

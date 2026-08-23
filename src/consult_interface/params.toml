@@ -1,0 +1,441 @@
+# Nissan CONSULT ECU parameter table.
+#
+# Generated once from the original hardcoded table. Values are authoritative
+# here now -- docs/params.csv is human reference material and is NOT loaded.
+# Rows carrying `disputed` conflict with params.csv and are deliberately
+# left at the code's original value pending confirmation on a real ECU.
+
+schema_version = 1
+
+[[param]]
+id = "ENGINE_SPEED_HR"
+kind = "dual"
+name = "Engine Speed HR"
+register_msb = 0x00
+register_lsb = 0x01
+unit = "RPM"
+scale = 12.5
+
+[[param]]
+id = "ENGINE_SPEED_LR"
+kind = "dual"
+name = "Engine Speed LR"
+register_msb = 0x02
+register_lsb = 0x03
+unit = "RPM"
+scale = 8
+
+[[param]]
+id = "MAF_VOLTAGE"
+kind = "dual"
+name = "MAF Voltage"
+register_msb = 0x04
+register_lsb = 0x05
+unit = "mV"
+scale = 5
+
+[[param]]
+id = "MAF_VOLTAGE_RH"
+kind = "dual"
+name = "MAF Voltage RH"
+register_msb = 0x06
+register_lsb = 0x07
+unit = "mV"
+scale = 5
+
+[[param]]
+id = "COOLANT_TEMP"
+kind = "single"
+name = "Coolant Temp"
+register = 0x08
+unit = "C"
+offset = -50
+
+[[param]]
+id = "O2_VOLTAGE_LH"
+kind = "single"
+name = "O2 Voltage LH"
+register = 0x09
+unit = "mV"
+scale = 10
+
+[[param]]
+id = "O2_VOLTAGE_RH"
+kind = "single"
+name = "O2 Voltage RH"
+register = 0x0A
+unit = "mV"
+scale = 10
+
+[[param]]
+id = "VEHICLE_SPEED"
+kind = "single"
+name = "Vehicle Speed"
+register = 0x0B
+unit = "km/h"
+scale = 2
+disputed = "params.csv says Value * 2 (kph); km/h vs kph is cosmetic"
+
+[[param]]
+id = "BATTERY_VOLTAGE"
+kind = "single"
+name = "Battery Voltage"
+register = 0x0C
+unit = "V"
+scale = 80
+disputed = "params.csv says Value * 80 (mV); the V label is likely wrong"
+
+[[param]]
+id = "TPS"
+kind = "single"
+name = "TPS"
+register = 0x0D
+unit = "%"
+scale = 20
+disputed = "params.csv says Value * 20 (mV); code labels it % -- genuine conflict"
+
+[[param]]
+id = "FUEL_TEMP"
+kind = "single"
+name = "Fuel Temp"
+register = 0x0F
+unit = "C"
+offset = -50
+
+[[param]]
+id = "IAT"
+kind = "single"
+name = "IAT"
+register = 0x11
+unit = "C"
+offset = -50
+
+[[param]]
+id = "EGT"
+kind = "single"
+name = "EGT"
+register = 0x12
+unit = "mV"
+scale = 20
+
+[[param]]
+id = "INJECTOR_TIME_LH"
+kind = "dual"
+name = "Injector Time LH"
+register_msb = 0x14
+register_lsb = 0x15
+unit = "ms"
+scale = 0.01
+
+[[param]]
+id = "IGNITION_TIMING"
+kind = "single"
+name = "Ignition Timing"
+register = 0x16
+unit = "deg BTDC"
+scale = -1
+offset = 110
+
+[[param]]
+id = "AAC_VALVE"
+kind = "single"
+name = "AAC Valve"
+register = 0x17
+unit = "%"
+scale = 0.5
+
+[[param]]
+id = "AF_ALPHA_LH"
+kind = "single"
+name = "AF Alpha LH"
+register = 0x1A
+unit = "%"
+
+[[param]]
+id = "AF_ALPHA_RH"
+kind = "single"
+name = "AF Alpha RH"
+register = 0x1B
+unit = "%"
+
+[[param]]
+id = "AF_ALPHA_SELFLEARN_LH"
+kind = "single"
+name = "AF Alpha Selflearn LH"
+register = 0x1C
+unit = "%"
+
+[[param]]
+id = "AF_ALPHA_SELFLEARN_RH"
+kind = "single"
+name = "AF Alpha Selflearn RH"
+register = 0x1D
+unit = "%"
+
+[[param]]
+id = "INJECTOR_TIME_RH"
+kind = "dual"
+name = "Injector Time RH"
+register_msb = 0x22
+register_lsb = 0x23
+unit = "ms"
+scale = 0.01
+
+[[param]]
+id = "PURGE_VALVE_STEP"
+kind = "single"
+name = "Purge Valve Step"
+register = 0x25
+unit = "steps"
+
+[[param]]
+id = "TANK_FUEL_TEMP"
+kind = "single"
+name = "Tank Fuel Temp"
+register = 0x26
+
+[[param]]
+id = "FPCM_VOLTAGE"
+kind = "single"
+name = "FPCM Voltage"
+register = 0x27
+unit = "V"
+
+[[param]]
+id = "WG_SOLENOID_POS"
+kind = "single"
+name = "WG Solenoid Pos"
+register = 0x28
+
+[[param]]
+id = "BOOST_VOLTAGE"
+kind = "single"
+name = "Boost Voltage"
+register = 0x29
+unit = "V"
+
+[[param]]
+id = "ENGINE_MOUNT"
+kind = "single"
+name = "Engine Mount"
+register = 0x2A
+
+[[param]]
+id = "POSITION_COUNTER"
+kind = "single"
+name = "Position Counter"
+register = 0x2E
+
+[[param]]
+id = "FUEL_GAUGE_VOLTAGE"
+kind = "single"
+name = "Fuel Gauge Voltage"
+register = 0x2F
+unit = "V"
+
+[[param]]
+id = "O2_FRONT_B1_VOLTAGE"
+kind = "single"
+name = "O2 Front B1 Voltage"
+register = 0x30
+unit = "V"
+
+[[param]]
+id = "O2_FRONT_B2_VOLTAGE"
+kind = "single"
+name = "O2 Front B2 Voltage"
+register = 0x31
+unit = "V"
+
+[[param]]
+id = "IGNITION_SWITCH"
+kind = "single"
+name = "Ignition Switch"
+register = 0x32
+
+[[param]]
+id = "CAL_LD_VALUE"
+kind = "single"
+name = "CAL LD Value"
+register = 0x33
+
+[[param]]
+id = "FUEL_SCHEDULE"
+kind = "single"
+name = "Fuel Schedule"
+register = 0x34
+
+[[param]]
+id = "O2_REAR_B1_VOLTAGE"
+kind = "single"
+name = "O2 Rear B1 Voltage"
+register = 0x35
+unit = "V"
+
+[[param]]
+id = "O2_REAR_B2_VOLTAGE"
+kind = "single"
+name = "O2 Rear B2 Voltage"
+register = 0x36
+unit = "V"
+
+[[param]]
+id = "THROTTLE_POSITION_ABS"
+kind = "single"
+name = "Throttle Position ABS"
+register = 0x37
+unit = "%"
+
+[[param]]
+id = "MAF_SCALED"
+kind = "single"
+name = "MAF Scaled"
+register = 0x38
+unit = "g/s"
+
+[[param]]
+id = "EVAP_PRESSURE_VOLTAGE"
+kind = "single"
+name = "Evap Pressure Voltage"
+register = 0x39
+unit = "V"
+
+[[param]]
+id = "ABS_PRESSURE_VOLTAGE_A"
+kind = "single"
+name = "ABS Pressure Voltage A"
+register = 0x3A
+unit = "V"
+
+[[param]]
+id = "ABS_PRESSURE_VOLTAGE_B"
+kind = "single"
+name = "ABS Pressure Voltage B"
+register = 0x4A
+unit = "V"
+
+[[param]]
+id = "FPCM_PRESSURE_VOLTAGE_A"
+kind = "single"
+name = "FPCM Pressure Voltage A"
+register = 0x52
+unit = "V"
+
+[[param]]
+id = "FPCM_PRESSURE_VOLTAGE_B"
+kind = "single"
+name = "FPCM Pressure Voltage B"
+register = 0x53
+unit = "V"
+
+[[param]]
+id = "AC_ON"
+kind = "bit"
+name = "A/C On"
+register = 0x13
+bit = 4
+
+[[param]]
+id = "POWER_STEERING"
+kind = "bit"
+name = "Power Steering"
+register = 0x13
+bit = 3
+
+[[param]]
+id = "PARK_NEUTRAL"
+kind = "bit"
+name = "Park/Neutral"
+register = 0x13
+bit = 2
+
+[[param]]
+id = "CRANKING"
+kind = "bit"
+name = "Cranking"
+register = 0x13
+bit = 1
+
+[[param]]
+id = "CLSD_THL_POS"
+kind = "bit"
+name = "CLSD/THL POS"
+register = 0x13
+bit = 0
+
+[[param]]
+id = "AC_RELAY"
+kind = "bit"
+name = "A/C Relay"
+register = 0x1E
+bit = 7
+
+[[param]]
+id = "FUEL_PUMP_RELAY"
+kind = "bit"
+name = "Fuel Pump Relay"
+register = 0x1E
+bit = 6
+
+[[param]]
+id = "VTC_SOLENOID"
+kind = "bit"
+name = "VTC Solenoid"
+register = 0x1E
+bit = 5
+
+[[param]]
+id = "COOLANT_FAN_HI"
+kind = "bit"
+name = "Coolant Fan Hi"
+register = 0x1E
+bit = 1
+
+[[param]]
+id = "COOLANT_FAN_LO"
+kind = "bit"
+name = "Coolant Fan Lo"
+register = 0x1E
+bit = 0
+
+[[param]]
+id = "P_REG_CONTROL_VALVE"
+kind = "bit"
+name = "P/Reg control valve"
+register = 0x1F
+bit = 6
+
+[[param]]
+id = "WG_SOLENOID_STATE"
+kind = "bit"
+name = "WG Solenoid State"
+register = 0x1F
+bit = 5
+
+[[param]]
+id = "IACV_FICD_SOLENOID"
+kind = "bit"
+name = "IACV FICD Solenoid"
+register = 0x1F
+bit = 3
+
+[[param]]
+id = "EGR_SOLENOID"
+kind = "bit"
+name = "EGR Solenoid"
+register = 0x1F
+bit = 0
+
+[[param]]
+id = "LH_BANK_LEAN"
+kind = "bit"
+name = "LH Bank Lean"
+register = 0x21
+bit = 7
+
+[[param]]
+id = "RH_BANK_LEAN"
+kind = "bit"
+name = "RH Bank Lean"
+register = 0x21
+bit = 6
